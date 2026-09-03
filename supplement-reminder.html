@@ -757,7 +757,7 @@ function renderSuppRow(x, mealIdx, phase, takenCount){
   if(supp.fatSoluble) tags.push('<span class="pill">脂溶性</span>');
 
   return `<div class="supp ${done?'done':''} ${skip?'skip':''}">
-    <div class="chk ${done?'checked':''} ${skip?'skip':''}" onclick="${skip?'':'toggleDose(\"'+supp.id+'\",'+mealIdx+',\"taken\")'}"></div>
+    <div class="chk ${done?'checked':''} ${skip?'skip':''}" onclick="${skip?'':'toggleDose('+supp.id+','+mealIdx+',‘taken’")'}"></div>
     <div style="flex:1">
       <div><span style="font-weight:600">${supp.name}</span>
         <span style="color:var(--muted);margin-left:6px">${phase} · ${supp.dose}</span>
