@@ -1,0 +1,1758 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#ff6b8a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="吃药提醒">
+<title>💊 保健品管家</title>
+<style>
+  :root{
+    --bg:#fff7f8; --card:#fff; --primary:#ff6b8a; --primary-dark:#e85578;
+    --accent:#6bc5a8; --warn:#ffa94d; --danger:#ff5c5c; --ink:#333;
+    --muted:#888; --line:#f0e3e6; --shadow:0 4px 16px rgba(255,107,138,.08);
+    --safe-top:env(safe-area-inset-top,0);
+    --safe-bot:env(safe-area-inset-bottom,0);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Helvetica Neue",Arial,sans-serif;
+    font-size:15px;line-height:1.5}
+  a{color:var(--primary);text-decoration:none}
+  button{font-family:inherit;font-size:15px}
+  .wrap{max-width:520px;margin:0 auto;padding:calc(12px + var(--safe-top)) 14px calc(90px + var(--safe-bot));}
+  .head{display:flex;align-items:center;justify-content:space-between;margin:6px 2px 14px}
+  .head h1{font-size:20px;margin:0;display:flex;align-items:center;gap:6px}
+  .mode-badge{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:999px;
+    font-size:12px;background:#ffe1e8;color:var(--primary-dark);font-weight:600}
+  .mode-badge.period{background:#c0507a;color:#fff}
+  .card{background:var(--card);border-radius:16px;padding:14px;box-shadow:var(--shadow);margin-bottom:12px}
+  .card h2{font-size:15px;margin:0 0 10px;display:flex;align-items:center;gap:6px}
+  .meal-row{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;
+    padding:12px 0;border-bottom:1px dashed var(--line)}
+  .meal-row:last-child{border-bottom:0}
+  .meal-name{font-weight:600;display:flex;align-items:center;gap:6px}
+  .meal-sub{font-size:12px;color:var(--muted);margin-top:2px}
+  .btn{border:0;border-radius:12px;padding:10px 14px;font-weight:600;cursor:pointer;
+    background:var(--primary);color:#fff;transition:transform .08s}
+  .btn:active{transform:scale(.96)}
+  .btn.ghost{background:#fff;color:var(--primary);border:1.5px solid var(--primary)}
+  .btn.accent{background:var(--accent)}
+  .btn.warn{background:var(--warn)}
+  .btn.danger{background:var(--danger)}
+  .btn.sm{padding:6px 10px;font-size:13px;border-radius:10px}
+  .btn-row{display:flex;gap:8px;flex-wrap:wrap}
+  .pill{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;
+    background:#f7edf0;color:var(--primary-dark);margin-right:4px;margin-bottom:2px}
+  .pill.warn{background:#fff3e2;color:#c77d1d}
+  .pill.danger{background:#ffe5e5;color:#c03838}
+  .pill.accent{background:#e1f5ee;color:#2f826a}
+  .pill.muted{background:#eef0f3;color:#666}
+  .supp{padding:8px 10px;border-radius:10px;background:#faf2f4;margin:4px 0;
+    display:flex;align-items:flex-start;gap:8px}
+  .supp.done{background:#eaf7f1;color:#4a8a74;opacity:.85}
+  .supp.skip{background:#f1f1f4;color:#888;text-decoration:line-through}
+  .supp .dose{font-weight:600;min-width:60px}
+  .supp .tags{margin-top:2px}
+  .chk{width:22px;height:22px;border-radius:50%;border:2px solid var(--primary);
+    display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;
+    background:#fff}
+  .chk.checked{background:var(--accent);border-color:var(--accent);color:#fff}
+  .chk.skip{border-color:#bbb;background:#f3f3f6}
+  .chk.checked::after{content:"✓";font-weight:700;font-size:14px}
+  .chk.skip::after{content:"/";color:#888;font-weight:700}
+  .tabbar{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--line);
+    display:flex;justify-content:space-around;padding:6px 0 calc(6px + var(--safe-bot));
+    z-index:50;box-shadow:0 -2px 10px rgba(0,0,0,.04)}
+  .tab{flex:1;text-align:center;padding:6px 0;color:var(--muted);cursor:pointer;
+    font-size:11px;display:flex;flex-direction:column;align-items:center;gap:2px;user-select:none}
+  .tab.active{color:var(--primary)}
+  .tab .ic{font-size:20px}
+  .page{display:none}
+  .page.active{display:block}
+  .empty{text-align:center;padding:20px;color:var(--muted);font-size:13px}
+  input,select,textarea{width:100%;padding:10px 12px;border:1px solid #e9dde0;border-radius:10px;
+    font-family:inherit;font-size:14px;background:#fff;outline:none}
+  input:focus,select:focus,textarea:focus{border-color:var(--primary)}
+  label{font-size:13px;color:#555;display:block;margin:10px 0 4px;font-weight:500}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+  .switch{position:relative;display:inline-block;width:44px;height:24px}
+  .switch input{opacity:0;width:0;height:0}
+  .slider{position:absolute;cursor:pointer;inset:0;background:#e1d5d9;border-radius:24px;transition:.2s}
+  .slider:before{position:absolute;content:"";height:18px;width:18px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.2s}
+  input:checked + .slider{background:var(--primary)}
+  input:checked + .slider:before{transform:translateX(20px)}
+  .banner{background:linear-gradient(135deg,#ffeef2,#fff3ea);border-radius:14px;padding:12px 14px;
+    margin-bottom:12px;font-size:13px;line-height:1.6}
+  .banner strong{color:var(--primary-dark)}
+  .redline{background:#fff3f3;border-left:4px solid var(--danger);padding:10px 12px;
+    border-radius:8px;margin:6px 0;font-size:13px}
+  .redline b{color:var(--danger)}
+  .log-item{padding:10px 0;border-bottom:1px solid #f5eef0;font-size:13px;display:flex;justify-content:space-between;gap:10px}
+  .log-item:last-child{border-bottom:0}
+  .log-time{color:var(--muted);font-size:12px;white-space:nowrap}
+  .tag-input{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
+  .toast{position:fixed;left:50%;bottom:100px;transform:translateX(-50%);background:#333;color:#fff;
+    padding:10px 18px;border-radius:999px;font-size:14px;z-index:9999;opacity:0;transition:opacity .25s;
+    pointer-events:none;max-width:90%;text-align:center}
+  .toast.show{opacity:1}
+  .sep{height:1px;background:var(--line);margin:10px 0}
+  .kpi{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+  .kpi .box{flex:1;min-width:90px;background:#faf2f4;border-radius:12px;padding:10px;text-align:center}
+  .kpi .box .n{font-size:18px;font-weight:700;color:var(--primary-dark)}
+  .kpi .box .l{font-size:11px;color:var(--muted);margin-top:2px}
+  .big-btn{width:100%;padding:16px;font-size:16px;border-radius:16px;
+    background:linear-gradient(135deg,var(--primary),#ff8fa8);color:#fff;border:0;font-weight:700;
+    box-shadow:0 6px 18px rgba(255,107,138,.3);cursor:pointer;margin:6px 0}
+  .big-btn:active{transform:scale(.985)}
+  .big-btn.gray{background:#e0d5d9;color:#666;box-shadow:none}
+  .hint{font-size:12px;color:var(--muted);margin-top:6px}
+  details summary{cursor:pointer;font-weight:600;padding:4px 0;list-style:none;display:flex;align-items:center;gap:6px}
+  details summary::-webkit-details-marker{display:none}
+  details summary::before{content:"▶";color:var(--primary);font-size:10px;transition:transform .2s}
+  details[open] summary::before{transform:rotate(90deg)}
+  details > div{padding:8px 4px 2px 16px}
+  .meal-time{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
+  .progress{height:6px;background:#f5e8ec;border-radius:999px;overflow:hidden;margin:6px 0}
+  .progress > span{display:block;height:100%;background:linear-gradient(90deg,var(--accent),var(--primary));transition:width .3s}
+  .ring-bell{font-size:22px;cursor:pointer;padding:4px}
+  @media (min-width:600px){ body{font-size:15px} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <!-- ============ 主页 ============ -->
+  <div id="page-home" class="page active">
+    <div class="head">
+      <h1>💊 <span id="greeting">早安</span></h1>
+      <span id="modeBadge" class="mode-badge">🩸 经期模式</span>
+    </div>
+
+    <div class="banner" id="topBanner"></div>
+
+    <div class="kpi" id="kpiRow"></div>
+
+    <div class="card">
+      <h2>🍽️ 今日吃饭流程（点按钮=打卡）</h2>
+      <div id="mealList"></div>
+    </div>
+
+    <div class="card">
+      <h2>📋 今日还需完成</h2>
+      <div id="todayTodo"></div>
+    </div>
+
+    <div class="card">
+      <h2>🔴 硬红线提醒</h2>
+      <div id="redlineList"></div>
+    </div>
+
+    <div class="card">
+      <h2>⚙️ 快捷操作</h2>
+      <div class="btn-row">
+        <button class="btn sm ghost" onclick="togglePeriodMode()">切换经期/非经期</button>
+        <button class="btn sm ghost" onclick="markExtraCarbs()">🍜 大餐+2粒分解酵母</button>
+        <button class="btn sm ghost" onclick="testNotify()">🔔 测试提醒</button>
+      </div>
+      <div class="btn-row" style="margin-top:8px">
+        <button class="btn sm warn" onclick="postponeALA()">🛢️ 今晚没油·ALA顺延明天</button>
+        <button class="btn sm danger" onclick="markHeavyFlowToday()">🩸 今天出血量巨大</button>
+        <button class="btn sm accent" onclick="unmarkHeavyFlowToday()">✨ 解除量大标记</button>
+      </div>
+      <div class="btn-row" style="margin-top:8px">
+        <button class="big-btn danger" style="padding:12px;font-size:14px;margin:0" onclick="hypoEmergency()">🏥 心慌手抖·低血糖一键求助</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 日志 ============ -->
+  <div id="page-log" class="page">
+    <div class="head"><h1>📓 打卡记录</h1></div>
+    <div class="card">
+      <h2>最近 100 条</h2>
+      <div id="logList"></div>
+      <div style="margin-top:10px" class="btn-row">
+        <button class="btn sm ghost" onclick="exportJSON()">⬇️ 导出数据</button>
+        <button class="btn sm ghost" onclick="document.getElementById('importFile').click()">⬆️ 导入数据</button>
+        <input type="file" id="importFile" accept=".json" style="display:none" onchange="importJSON(event)">
+        <button class="btn sm danger" onclick="clearAll()">🗑️ 清空全部</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>📅 经期日历</h2>
+      <div class="banner" style="background:#fff5f7">
+        📌 <b>关于读取手机经期：</b>浏览器沙箱权限有限，<u>直接读不到</u>iOS「健康」「美柚」「好孕帮」或安卓系统日历里的经期数据（这是 Apple/Google 的隐私保护策略，不是 APP 没做）。
+        所以给你设计了 <b>4 种零门槛替代方案</b>，照最顺手的方式用：<br>
+        1️⃣ <b>主页红色按钮一键切今天</b>（来了就按，结束再按一次）<br>
+        2️⃣ <b>起止日期段填一次</b>（一次填 5~7 天，整轮搞定）<br>
+        3️⃣ <b>文本粘贴智能识别</b>（从美柚/日历复制日期粘进来自动 parse）<br>
+        4️⃣ <b>AI预测 + 1个按钮校准</b>（根据历史自动算下次大概日期，不准就手动调）
+      </div>
+
+      <div id="periodQuickBar" style="background:#fff;border:1px solid var(--border);border-radius:10px;padding:10px;margin-top:6px"></div>
+      <div id="periodPredict" style="margin-top:8px"></div>
+
+      <label style="margin-top:10px">✳️ 经期段录入（推荐·一次搞定 5-7天）</label>
+      <div class="row2">
+        <input type="date" id="prFrom" value="${todayISO()}">
+        <input type="date" id="prTo" value="${todayISO()}">
+      </div>
+      <div class="btn-row" style="margin-top:8px">
+        <button class="btn sm" onclick="addPeriodRange()">+ 加入这段经期</button>
+        <button class="btn sm ghost" onclick="markEndToday()">✨ 今天经期结束</button>
+      </div>
+
+      <label style="margin-top:10px">📋 粘贴识别（从美柚/日历/备忘录复制文本粘下面）</label>
+      <textarea id="periodPaste" rows="3" placeholder="例：1月5号到1月10号；或 2026-01-05~2026-01-10；或 5-10 Jan；或一段里有多段，每行一个。"></textarea>
+      <div class="btn-row" style="margin-top:4px">
+        <button class="btn sm ghost" onclick="smartParsePeriod()">🔍 智能识别并加入</button>
+      </div>
+
+      <div style="margin-top:10px">
+        <label>📚 已录入经期段（点删除）</label>
+        <div id="periodRangeList"></div>
+      </div>
+      <label style="margin-top:10px">🗓 单日列表（展开后 30 天）</label>
+      <details><summary>最近经期单日（${periodCount_()}天）</summary>
+      <div id="periodList"></div>
+      </details>
+      <div class="btn-row" style="margin-top:8px">
+        <button class="btn sm" onclick="addPeriodToday()">🩸 今天来了·记经期</button>
+      </div>
+      <details style="margin-top:8px"><summary style="font-size:12px;color:var(--muted)">ℹ️ 如何让手机系统日历自动写入本APP？(进阶)</summary>
+        <div style="font-size:12px;color:var(--muted);padding-top:6px;line-height:1.7">
+          · <b>iPhone 用户 (iOS 快捷指令)：</b>用「快捷指令 APP」做一个自动化：经期开始 → 打开本页 URL，末尾带上 <code>?periodStart=2026-01-05&amp;periodEnd=2026-01-10</code>，本页会自动收录（已内置解析逻辑）。<br>
+          · <b>Android 用户 (Tasker / Macrodroid)：</b>触发「美柚/日历经期开始」→ 打开本 APP 地址，同样带 URL 参数即可。<br>
+          · 参数支持：<code>?periodStart=YYYY-MM-DD&amp;periodEnd=YYYY-MM-DD</code>，也支持 <code>&amp;heavyFlow=1</code>。
+        </div>
+      </details>
+    </div>
+    <div class="card">
+      <h2>🔁 循环进度</h2>
+      <div id="cycleProgress"></div>
+    </div>
+  </div>
+
+  <!-- ============ 保健品管理 ============ -->
+  <div id="page-supp" class="page">
+    <div class="head"><h1>💊 保健品清单</h1></div>
+    <div class="card">
+      <h2>➕ 添加 / 编辑</h2>
+      <div id="suppForm"></div>
+    </div>
+    <div class="card">
+      <h2>当前列表（点编辑）</h2>
+      <div id="suppList"></div>
+      <div class="hint" style="margin-top:8px">💡 已为你预置了流程里提到的全部保健品，可随时增删改。</div>
+    </div>
+  </div>
+
+  <!-- ============ 设置 ============ -->
+  <div id="page-set" class="page">
+    <div class="head"><h1>⚙️ 设置</h1></div>
+    <div class="card">
+      <h2>🍽️ 三餐名称（你可以改成习惯叫法）</h2>
+      <div class="row3">
+        <div><label>早餐</label><input id="setMeal0" value="早餐"></div>
+        <div><label>午餐</label><input id="setMeal1" value="午餐"></div>
+        <div><label>晚餐</label><input id="setMeal2" value="晚餐"></div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>⏰ 提醒灵敏度</h2>
+      <label><input type="checkbox" id="setNotify" checked=""> 开启本地通知（需点一下按钮授权）</label>
+      <label style="margin-top:8px"><input type="checkbox" id="setVibrate" checked=""> 打卡时震动一下</label>
+      <label style="margin-top:8px">餐后N分钟后提醒"餐后药"（默认吃完立刻弹）
+        <input type="number" id="setAfterMin" value="0" min="0" max="120">
+      </label>
+      <div class="btn-row" style="margin-top:10px">
+        <button class="btn sm" onclick="saveSettings()">💾 保存设置</button>
+        <button class="btn sm accent" onclick="resetDefaults()">↩️ 恢复默认保健品</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>📝 极简备忘录（可复制）</h2>
+      <textarea id="memoPad" rows="14"></textarea>
+      <div class="btn-row" style="margin-top:8px">
+        <button class="btn sm ghost" onclick="copyMemo()">📋 复制</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>🧪 保健品搭配核验（结论）</h2>
+      <div id="safetyReport"></div>
+    </div>
+  </div>
+</div>
+
+<!-- 底部 tab -->
+<div class="tabbar">
+  <div class="tab active" data-page="home"><span class="ic">🏠</span><span>今日</span></div>
+  <div class="tab" data-page="log"><span class="ic">📓</span><span>日志</span></div>
+  <div class="tab" data-page="supp"><span class="ic">💊</span><span>保健品</span></div>
+  <div class="tab" data-page="set"><span class="ic">⚙️</span><span>设置</span></div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+/* ============================================================
+   数据结构与默认值
+============================================================ */
+const LS_KEY = 'supp_reminder_v1';
+
+// 预设保健品（方案②：双隔天错峰 + 3月统一停2周）
+function defaultSupplements(){
+  return [
+    {id:'chrom',name:'斯旺森吡啶甲酸铬',dose:'1粒',timing:'withMeal',mealList:[0],dailyCap:1,perMealCap:1,
+      schedule:'daily',stopInPeriod:false,fatSoluble:false,requiresOil:false,
+      notes:'每天1粒（早餐随餐固定）；不要再叠加别的含铬保健品',tags:['铬','每日上限1粒']},
+    {id:'qushi',name:'祛湿轻',dose:'1粒',timing:'afterMeal',mealList:[0,2],dailyCap:2,perMealCap:1,
+      schedule:'cycle2w1w',cycleStartKey:'qushi_cycle',stopInPeriod:false,fatSoluble:false,
+      beforeCutoff:19,requiresOil:false,notes:'2周吃→1周停循环；两粒务必 19 点前吃完',tags:['祛湿','循环药','19点前']},
+    {id:'fenjie',name:'分解酵母',dose:'2粒',timing:'afterMeal',mealList:[0,2],dailyCap:4,perMealCap:2,
+      schedule:'daily',stopInPeriod:true,fatSoluble:false,requiresOil:false,
+      notes:'跟着碳水餐后吃；大餐碳水多可额外+2粒(全天≤6)；经期直接完全停掉',tags:['碳水','经期停']},
+    {id:'pro',name:'肠胃益生菌',dose:'1粒',timing:'afterMealDelayed',delayMin:30,mealList:[0],dailyCap:1,perMealCap:1,
+      schedule:'daily',stopInPeriod:false,fatSoluble:false,requiresOil:false,notes:'早饭后间隔30min',tags:['餐后延迟']},
+    {id:'berb',name:'Nutricost二氢小檗碱',dose:'1粒',timing:'withMeal',mealList:[1],dailyCap:1,perMealCap:1,
+      schedule:'oddDayOnly',cycleStartKey:'berb_cycle',stopInPeriod:false,fatSoluble:false,requiresOil:false,
+      notes:'方案②：每月单号日午餐随餐1粒；最多连续1-2个月→停2周',tags:['单号日','肝药酶','降糖']},
+    {id:'shao',name:'少女泉',dose:'1粒',timing:'withMeal',mealList:[2],dailyCap:1,perMealCap:1,
+      schedule:'daily',stopInPeriod:true,fatSoluble:false,requiresOil:true,notes:'晚餐带油脂一起吃；经期停',tags:['经期停','需油脂']},
+    {id:'ala',name:'NOW α-硫辛酸 600mg',dose:'1整粒(600mg)',timing:'withMeal',mealList:[2],dailyCap:1,perMealCap:1,
+      schedule:'evenDayOilStrict',cycleStartKey:'unified_3m_break',stopInPeriod:false,skipOnHeavyFlow:true,fatSoluble:true,requiresOil:true,
+      notes:'方案②：每月双号日晚餐随餐1整粒；必须有油脂！没油就顺延到次日；经期出血量巨多当天可临时停',tags:['双号日','脂溶性','需油脂','肝肾休整','缺油顺延']},
+    {id:'lutein',name:'双心越橘叶黄素鱼油',dose:'1粒',timing:'withMeal',mealList:[2],dailyCap:1,perMealCap:1,
+      schedule:'daily',stopInPeriod:false,skipOnHeavyFlow:true,fatSoluble:true,requiresOil:true,
+      notes:'脂溶性/鱼油，必须随油脂正餐；放晚上；经期出血量巨多当天可临时停',tags:['脂溶性','鱼油','需油脂','量大停']},
+    {id:'cur',name:'Naturewise姜黄素',dose:'1粒',timing:'withMeal',mealList:[2],dailyCap:1,perMealCap:1,
+      schedule:'cycle3m2w',cycleStartKey:'unified_3m_break',stopInPeriod:true,fatSoluble:true,requiresOil:true,
+      notes:'脂溶性，必须随有油脂正餐；与ALA/水飞蓟统一：连续3个月→停2周；经期停',tags:['脂溶性','经期停','需油脂','肝肾休整','统一停休']},
+    {id:'milk',name:'月神水飞蓟口服液',dose:'1支',timing:'afterMeal',mealList:[2],dailyCap:1,perMealCap:1,
+      schedule:'cycle3m2w',cycleStartKey:'unified_3m_break',stopInPeriod:false,fatSoluble:false,requiresOil:false,
+      enabled:true,notes:'晚饭后吃；与ALA/姜黄素统一：连续3个月→停2周',tags:['肝肾休整','统一停休','晚饭后']},
+  ].map((s,i)=>({id:s.id||('s'+i),enabled:s.enabled!==false,cycleStartKey:s.cycleStartKey||null,...s}));
+}
+
+// 默认数据
+function defaultData(){
+  return {
+    supplements: defaultSupplements(),
+    meals: ['早餐','午餐','晚餐'],
+    settings: {notify:true,vibrate:true,afterMin:0},
+    logs: [],            // {ts,type:'mealStart'|'mealEnd'|'dose'|'skip'|'periodStart'|'periodEnd'|'postpone'|'hypo'|'heavyflow', mealIdx?, suppId?, note?}
+    periodDays: [],      // 'YYYY-MM-DD' 字符串数组
+    periodRanges: [],    // [{from:'YYYY-MM-DD', to:'YYYY-MM-DD'}] —— 更精准的经期段录入
+    cycleStart: {        // 各循环起点日期 YYYY-MM-DD
+      qushi_cycle: todayISO(),
+      berb_cycle: todayISO(),
+      unified_3m_break: todayISO(),
+    },
+    flags: {
+      // ala顺延：如果昨晚双号无油顺延到今天单号 → 记在此，让今天晚餐允许吃 ALA 但不影响当天单号的小檗碱
+      alaPostponedFrom: null,  // 'YYYY-MM-DD'
+      heavyFlowDays: [],       // 'YYYY-MM-DD' 出血量巨大日
+    },
+    created: Date.now()
+  };
+}
+
+let DB = loadDB();
+
+/* ============================================================
+   工具函数
+============================================================ */
+function loadDB(){
+  try{
+    const s = localStorage.getItem(LS_KEY);
+    if(s){ const d = JSON.parse(s);
+      if(!d.meals) d.meals=['早餐','午餐','晚餐'];
+      if(!d.settings) d.settings={notify:true,vibrate:true,afterMin:0};
+      if(!d.logs) d.logs=[];
+      if(!d.periodDays) d.periodDays=[];
+      if(!d.periodRanges) d.periodRanges=[];
+      if(!d.cycleStart) d.cycleStart={};
+      if(!d.flags) d.flags={alaPostponedFrom:null,heavyFlowDays:[]};
+      if(!d.flags.heavyFlowDays) d.flags.heavyFlowDays=[];
+      // 兼容旧循环 key：把 ala_cycle/cur_cycle/milk_cycle 迁移到统一键
+      const unified = d.cycleStart.unified_3m_break || d.cycleStart.ala_cycle || d.cycleStart.cur_cycle || d.cycleStart.milk_cycle || todayISO();
+      d.cycleStart.unified_3m_break = unified;
+      if(!d.supplements||!d.supplements.length) d.supplements=defaultSupplements();
+      return d;
+    }
+  }catch(e){}
+  return defaultData();
+}
+function saveDB(){ localStorage.setItem(LS_KEY, JSON.stringify(DB)); }
+function todayISO(d=new Date()){
+  const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), dd=String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${dd}`;
+}
+function parseISO(s){const [y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d);}
+function daysBetween(a,b){ // b-a 天数
+  return Math.round((parseISO(b)-parseISO(a))/86400000);
+}
+function addDays(isoStr, delta){
+  const d = parseISO(isoStr); d.setDate(d.getDate()+delta); return todayISO(d);
+}
+function toast(msg,ms=1600){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),ms);}
+function vib(pat=[30]){ if(DB.settings.vibrate && navigator.vibrate){ try{navigator.vibrate(pat);}catch(e){} } }
+function fmtTime(ts){const d=new Date(ts);return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;}
+function fmtDateTime(ts){const d=new Date(ts);return `${todayISO(d)} ${fmtTime(ts)}`;}
+
+/* ============================================================
+   规则引擎：某保健品今天是否该吃（方案②：单号小檗碱 / 双号ALA / 3月统一停休）
+============================================================ */
+function dayOfMonth(dateStr=todayISO()){ return +(dateStr.slice(-2)); }
+function isOddDay(d){ return dayOfMonth(d)%2===1; }
+function isEvenDay(d){ return dayOfMonth(d)%2===0; }
+function expandPeriodDays(){
+  const set = new Set(DB.periodDays||[]);
+  for(const r of (DB.periodRanges||[])){
+    const a=parseISO(r.from), b=parseISO(r.to||r.from);
+    for(let t=a.getTime(); t<=b.getTime(); t+=86400000) set.add(todayISO(new Date(t)));
+  }
+  return [...set];
+}
+function isPeriodToday(d=todayISO()){ return expandPeriodDays().includes(d); }
+function setPeriodToday(on){
+  const t=todayISO(); const i=DB.periodDays.indexOf(t);
+  if(on && i<0) DB.periodDays.push(t);
+  if(!on && i>=0) DB.periodDays.splice(i,1);
+  DB.periodDays.sort();
+}
+function periodDayIndex(d=todayISO()){
+  if(!isPeriodToday(d)) return 0;
+  let n=1; let cur=parseISO(d);
+  while(true){
+    cur = new Date(cur.getTime()-86400000);
+    if(isPeriodToday(todayISO(cur))) n++; else break;
+    if(n>60) break;
+  }
+  return n;
+}
+function isHeavyFlowToday(){ return (DB.flags.heavyFlowDays||[]).includes(todayISO()); }
+
+// 返回 {shouldTake:bool, reason:string, warn?:string}
+function evalSchedule(supp){
+  if(!supp.enabled) return {shouldTake:false, reason:'未启用'};
+  const today = todayISO();
+  const odd = isOddDay(today), even = isEvenDay(today);
+
+  // 停经期：经期停 OR 出血量巨大日临时停
+  if(supp.stopInPeriod && isPeriodToday(today)) return {shouldTake:false, reason:'经期停用'};
+  if(supp.skipOnHeavyFlow && isHeavyFlowToday()) return {shouldTake:false, reason:'出血量巨多日停'};
+
+  // 统一停休（ALA/姜黄素/水飞蓟）
+  const needsUnified = supp.schedule==='cycle3m2w' || supp.schedule==='evenDayOilStrict';
+  if(needsUnified){
+    const start = DB.cycleStart['unified_3m_break'] || today;
+    const d = daysBetween(start, today);
+    const cycle = 104;
+    const phase = ((d%cycle)+cycle)%cycle;
+    if(phase>=90) return {shouldTake:false, reason:`3月统一停休(停第${phase-89}/14天)`};
+  }
+
+  switch(supp.schedule){
+    case 'daily': return {shouldTake:true, reason:'每日'};
+    case 'alternate': {
+      const start = DB.cycleStart[supp.cycleStartKey] || today;
+      const d = daysBetween(start, today);
+      return d%2===0 ? {shouldTake:true, reason:'隔天(今日吃)'} : {shouldTake:false, reason:'隔天(今日停)'};
+    }
+    case 'oddDayOnly': {
+      if(!odd) return {shouldTake:false, reason:'单号日生效(今日双号停)'};
+      const start = DB.cycleStart[supp.cycleStartKey] || today;
+      const d = daysBetween(start, today);
+      const cycle=74; const phase=((d%cycle)+cycle)%cycle;
+      if(phase>=60) return {shouldTake:false, reason:`小檗碱停休(停第${phase-59}/14天)`};
+      return {shouldTake:true, reason:`单号·小檗碱周期第${phase+1}/60天`};
+    }
+    case 'evenDayOilStrict': {
+      const post = DB.flags && DB.flags.alaPostponedFrom===today;
+      if(!even && !post) return {shouldTake:false, reason:'双号日生效(今日单号停)'};
+      if(post) return {shouldTake:true, reason:'顺延补吃(昨日缺油)',warn:'今日补吃：晚餐务必带油脂；不影响午餐单号的小檗碱'};
+      return {shouldTake:true, reason:'双号日随油脂晚餐',warn:'今晚必须有油脂；没油请点「顺延到明天」'};
+    }
+    case 'cycle2w1w': {
+      const start = DB.cycleStart[supp.cycleStartKey] || today;
+      const d = daysBetween(start, today);
+      const phase = ((d%21)+21)%21;
+      return phase<14 ? {shouldTake:true, reason:`2周吃1周停(第${phase+1}天/吃)`}
+                      : {shouldTake:false, reason:`2周吃1周停(停第${phase-13}天)`};
+    }
+    case 'cycle3m2w': {
+      const start = DB.cycleStart[supp.cycleStartKey] || today;
+      const d = daysBetween(start, today);
+      const cycle = 104;
+      const phase = ((d%cycle)+cycle)%cycle;
+      return phase<90 ? {shouldTake:true, reason:`3月统一停休(第${phase+1}/90天)`}
+                      : {shouldTake:false, reason:`3月统一停休(停第${phase-89}/14天)`};
+    }
+    case 'cycle1m2w': {
+      const start = DB.cycleStart[supp.cycleStartKey] || today;
+      const d = daysBetween(start, today);
+      const cycle = 74;
+      const phase = ((d%cycle)+cycle)%cycle;
+      return phase<60 ? {shouldTake:true, reason:`2月吃2周停(第${phase+1}/60天)`}
+                      : {shouldTake:false, reason:`2月吃2周停(停第${phase-59}/14天)`};
+    }
+  }
+  return {shouldTake:true, reason:''};
+}
+
+
+/* ============================================================
+   今日餐别应吃清单
+============================================================ */
+function todayPlanForMeal(mealIdx){
+  const list=[];
+  for(const s of DB.supplements){
+    if(s.mealList && !s.mealList.includes(mealIdx)) continue;
+    if(s.mealIdx>=0 && s.mealIdx!==mealIdx) continue;
+    const sch = evalSchedule(s);
+    list.push({supp:s, sch});
+  }
+  return list;
+}
+
+// 已打卡统计 (今天)
+function todayTakenMap(){
+  const day=todayISO(); const map={}; // suppId -> count
+  for(const L of DB.logs){
+    if(fmtDateTime(L.ts).slice(0,10)!==day) continue;
+    if(L.type==='dose' && L.suppId) map[L.suppId]=(map[L.suppId]||0)+(L.qty||1);
+  }
+  return map;
+}
+function todayMealDone(){ // {mealStart:[false,false,false], mealEnd:[false,false,false]}
+  const day=todayISO(); const ms=[false,false,false], me=[false,false,false];
+  for(const L of DB.logs){
+    if(fmtDateTime(L.ts).slice(0,10)!==day) continue;
+    if(L.type==='mealStart') ms[L.mealIdx]=true;
+    if(L.type==='mealEnd') me[L.mealIdx]=true;
+  }
+  return {ms,me};
+}
+
+/* ============================================================
+   通知
+============================================================ */
+async function askNotify(){
+  if(!('Notification' in window)){ toast('此浏览器不支持通知'); return false; }
+  if(Notification.permission==='granted') return true;
+  const r = await Notification.requestPermission();
+  return r==='granted';
+}
+function doNotify(title, body){
+  if(!DB.settings.notify) return;
+  if(!('Notification' in window) || Notification.permission!=='granted') return;
+  try{ new Notification(title,{body, icon:'💊'}); }catch(e){}
+  vib([50,30,50]);
+}
+function testNotify(){ askNotify().then(ok=>{ if(ok){ doNotify('💊 测试成功','以后吃饭时间会通过这种方式提醒你'); }else toast('未获得通知权限'); }); }
+
+/* ============================================================
+   打卡动作
+============================================================ */
+function mealStart(mealIdx){
+  DB.logs.push({ts:Date.now(),type:'mealStart',mealIdx});
+  saveDB(); vib([20]);
+  // 弹随餐药
+  const items = todayPlanForMeal(mealIdx).filter(x=>x.supp.timing==='withMeal');
+  setTimeout(()=>renderMealPopup(mealIdx,'随餐',items),50);
+  render();
+}
+function mealEnd(mealIdx){
+  DB.logs.push({ts:Date.now(),type:'mealEnd',mealIdx});
+  saveDB(); vib([20]);
+  const items = todayPlanForMeal(mealIdx).filter(x=>
+    x.supp.timing==='afterMeal' || x.supp.timing==='afterMealDelayed');
+  const delayMin = (DB.settings.afterMin||0);
+  const fn=()=>renderMealPopup(mealIdx,'餐后',items);
+  if(delayMin>0){ toast(`${delayMin}分钟后提醒餐后药`);
+    setTimeout(()=>{ doNotify('💊 餐后药提醒',`${DB.meals[mealIdx]}后，请查看餐后清单`); fn(); }, delayMin*60000);
+  }else{ setTimeout(fn,50); }
+  render();
+}
+function toggleDose(suppId, mealIdx, state /* 'taken'|'skip'|null */){
+  const taken = todayTakenMap()[suppId]||0;
+  const supp = DB.supplements.find(s=>s.id===suppId);
+  if(!supp) return;
+  // 上限校验
+  if(state==='taken' && taken >= (supp.dailyCap||99)){ toast(`${supp.name}已达每日上限(${supp.dailyCap})`); return; }
+  if(state==='taken'){
+    DB.logs.push({ts:Date.now(),type:'dose',suppId,mealIdx,qty:supp.perMealCap||1,note:supp.dose});
+    vib([40]);
+  }else if(state==='skip'){
+    DB.logs.push({ts:Date.now(),type:'skip',suppId,mealIdx});
+  }
+  saveDB(); render();
+}
+function markExtraCarbs(){
+  // 午餐后特殊: +2 分解酵母（不计入常规上限提醒但会被dailyCap挡）
+  const supp = DB.supplements.find(s=>s.name.includes('分解酵母'));
+  if(!supp){ toast('先添加分解酵母'); return; }
+  const taken = todayTakenMap()[supp.id]||0;
+  if(taken+2 > 6){ toast('全天最多6粒，已到极限'); return; }
+  DB.logs.push({ts:Date.now(),type:'dose',suppId:supp.id,mealIdx:1,qty:2,note:'大餐额外+'+supp.dose});
+  saveDB(); vib([60]); toast('🍜 已加记 2粒分解酵母(午饭后大餐)'); render();
+}
+
+/* ============================================================
+   弹窗：随餐/餐后清单
+============================================================ */
+function renderMealPopup(mealIdx, phase, items){
+  // 不搞模态，改用顶部醒目 banner + 本地通知
+  const names = items.filter(x=>x.sch.shouldTake).map(x=>`${x.supp.name}${x.supp.dose}`).join('、');
+  if(names){
+    doNotify(`🍽️ ${DB.meals[mealIdx]} · ${phase}药`, names);
+    toast(`${phase}：${names}`,3000);
+  }else{
+    toast(`${DB.meals[mealIdx]}${phase}无需要吃的~`,2000);
+  }
+}
+
+/* ============================================================
+   渲染 - 主页
+============================================================ */
+function render(){
+  renderHome(); renderLog(); renderSupp(); renderSet();
+  document.querySelectorAll('.tab').forEach(t=>{
+    t.classList.toggle('active', t.dataset.page===currentPage);
+  });
+}
+function renderHome(){
+  // 问候
+  const h=new Date().getHours();
+  document.getElementById('greeting').textContent =
+    h<5?'深夜好':h<11?'早安':h<14?'午安':h<18?'下午好':h<22?'晚安':'夜深了';
+  // 经期角标 + 单双号
+  const badge = document.getElementById('modeBadge');
+  const odd = isOddDay();
+  const pd = periodDayIndex();
+  const headerSuffix = ` · ${odd?'<b style="color:#fff">奇 单号</b>🍜中午小檗碱':'<b style="color:#fff">偶 双号</b>🌙晚上硫辛酸'}`;
+  if(isPeriodToday()){
+    badge.innerHTML = `🩸 经期第${pd}天${headerSuffix}`; badge.classList.add('period');
+  }else{
+    badge.innerHTML = `✨ 非经期 · ${odd?'<b>奇·单号</b>🍜':'<b>偶·双号</b>🌙'}`;
+    badge.classList.remove('period');
+  }
+
+  // 顶部 banner
+  const banner = document.getElementById('topBanner');
+  const taken=todayTakenMap(); const totalToday=totalShouldToday();
+  const doneCount = Object.values(taken).reduce((a,b)=>a+b,0);
+  const oddEvenHint = odd
+    ? `<b style="color:#c0507a">今日单号日 → 午餐随餐吃：二氢小檗碱；晚餐没有硫辛酸</b>`
+    : `<b style="color:#2f6fbf">今日双号日 → 晚餐带油脂随餐吃：α-硫辛酸1整粒；午餐不吃小檗碱</b>`;
+  banner.innerHTML = `今天 <strong>${todayISO()}</strong> · ${oddEvenHint}<br>
+    预计需吃 <b>${totalToday.expected}</b> 种次 · 已完成 <b style="color:var(--accent)">${doneCount}</b> 种次<br>
+    <small style="color:#888">吃饭先点 <b>「开始吃」</b>→随餐药弹出；吃完点 <b>「吃完了」</b>→餐后药弹出</small>`;
+
+  // KPI
+  document.getElementById('kpiRow').innerHTML = `
+    <div class="box"><div class="n">${doneCount}/${totalToday.expected}</div><div class="l">今日进度</div></div>
+    <div class="box"><div class="n">${DB.meals[0]}</div><div class="l">${lastMealTime('mealStart',0)||'未打卡'}</div></div>
+    <div class="box"><div class="n">${DB.meals[1]}</div><div class="l">${lastMealTime('mealStart',1)||'未打卡'}</div></div>
+    <div class="box"><div class="n">${DB.meals[2]}</div><div class="l">${lastMealTime('mealStart',2)||'未打卡'}</div></div>
+  `;
+
+  // 今日三餐
+  const {ms,me}=todayMealDone();
+  const html = [0,1,2].map(i=>{
+    const withItems = todayPlanForMeal(i).filter(x=>x.supp.timing==='withMeal');
+    const afterItems = todayPlanForMeal(i).filter(x=>
+      x.supp.timing==='afterMeal'||x.supp.timing==='afterMealDelayed');
+    return `<div class="meal-row">
+      <div>
+        <div class="meal-name">${mealIcon(i)} ${DB.meals[i]}
+          ${ms[i]?'<span class="pill accent">吃了</span>':''}
+          ${me[i]?'<span class="pill">已结算</span>':''}
+        </div>
+        <div class="meal-sub">
+          随餐：${summarizeItems(withItems)||'无'}<br>
+          餐后：${summarizeItems(afterItems)||'无'}
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <button class="btn sm ${ms[i]?'gray':''}" onclick="mealStart(${i})">${ms[i]?'已开始':'开始吃'}</button>
+        <button class="btn sm accent ${me[i]?'gray':''}" onclick="mealEnd(${i})" ${!ms[i]&&!me[i]?'disabled style="opacity:.45"':''}>吃完了</button>
+      </div>
+    </div>`;
+  }).join('');
+  document.getElementById('mealList').innerHTML = html;
+
+  // 今日待办清单
+  document.getElementById('todayTodo').innerHTML = renderTodoItems();
+
+  // 红线
+  document.getElementById('redlineList').innerHTML = renderRedlines();
+}
+
+function mealIcon(i){return ['🌞','☀️','🌙'][i]||'🍽️';}
+
+function summarizeItems(items){
+  return items.filter(x=>x.sch.shouldTake).map(x=>{
+    const tags=[];
+    if(x.supp.stopInPeriod && isPeriodToday()) return null;
+    if(x.supp.requiresOil) tags.push('需油脂');
+    if(x.supp.beforeCutoff) tags.push(`${x.supp.beforeCutoff}点前`);
+    if(x.supp.timing==='afterMealDelayed') tags.push(`餐后${x.supp.delayMin||30}min`);
+    return `<span>${x.supp.name}${x.supp.dose}${tags.length?`<span class="pill warn">${tags.join('·')}</span>`:''}</span>`;
+  }).filter(Boolean).join(' · ') || '';
+}
+
+function lastMealTime(type, idx){
+  const day=todayISO();
+  for(let i=DB.logs.length-1;i>=0;i--){
+    const L=DB.logs[i];
+    if(fmtDateTime(L.ts).slice(0,10)!==day) continue;
+    if(L.type===type && L.mealIdx===idx) return fmtTime(L.ts);
+  }
+  return '';
+}
+
+function totalShouldToday(){
+  let expected=0;
+  for(const s of DB.supplements){
+    const sch=evalSchedule(s); if(!sch.shouldTake) continue;
+    expected += (s.mealList?s.mealList.length:1)*(s.perMealCap||1);
+  }
+  return {expected};
+}
+
+function renderTodoItems(){
+  const taken=todayTakenMap();
+  const {ms,me}=todayMealDone();
+  const parts=[];
+  for(let mi=0;mi<3;mi++){
+    const arr = todayPlanForMeal(mi);
+    const withs=arr.filter(x=>x.supp.timing==='withMeal');
+    const afters=arr.filter(x=>x.supp.timing==='afterMeal'||x.supp.timing==='afterMealDelayed');
+    if(withs.length||afters.length){
+      parts.push(`<div style="margin:8px 0">
+        <div style="font-weight:600;margin-bottom:4px">${mealIcon(mi)} ${DB.meals[mi]} ${ms[mi]?'<span class="pill accent">进行中</span>':''}${me[mi]?'<span class="pill muted">已结束</span>':''}</div>`);
+      for(const x of withs) parts.push(renderSuppRow(x,mi,'随餐',taken[x.supp.id]||0));
+      for(const x of afters) parts.push(renderSuppRow(x,mi,
+        x.supp.timing==='afterMealDelayed'?`餐后${x.supp.delayMin||30}min`:'餐后',taken[x.supp.id]||0));
+      parts.push('</div>');
+    }
+  }
+  return parts.join('') || '<div class="empty">今天没有要吃的（可能在循环停服期）</div>';
+}
+
+function renderSuppRow(x, mealIdx, phase, takenCount){
+  const done = x.sch.shouldTake ? (takenCount >= (x.supp.perMealCap||1)) : false;
+  const skip = !x.sch.shouldTake;
+  const supp = x.supp;
+  const tags = [];
+  if(!x.sch.shouldTake) tags.push(`<span class="pill muted">${x.sch.reason}</span>`);
+  if(supp.requiresOil) tags.push('<span class="pill warn">需油脂</span>');
+  if(supp.beforeCutoff) tags.push(`<span class="pill danger">${supp.beforeCutoff}点前</span>`);
+  if(supp.stopInPeriod) tags.push('<span class="pill">经期停</span>');
+  if(supp.fatSoluble) tags.push('<span class="pill">脂溶性</span>');
+
+  return `<div class="supp ${done?'done':''} ${skip?'skip':''}">
+    <div class="chk ${done?'checked':''} ${skip?'skip':''}" onclick="${skip?'':'toggleDose(\"'+supp.id+'\",'+mealIdx+',\"taken\")'}"></div>
+    <div style="flex:1">
+      <div><span style="font-weight:600">${supp.name}</span>
+        <span style="color:var(--muted);margin-left:6px">${phase} · ${supp.dose}</span>
+      </div>
+      <div class="tags">${tags.join(' ')}
+        ${supp.notes?`<div style="font-size:12px;color:var(--muted);margin-top:4px">💡 ${supp.notes}</div>`:''}
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:4px">
+      <button class="btn sm ghost" onclick="toggleDose('${supp.id}',${mealIdx},'skip')">跳过</button>
+    </div>
+  </div>`;
+}
+
+/* 红线（方案②专属） */
+function renderRedlines(){
+  const rs=[]; const today=todayISO();
+  const odd=isOddDay(today); const even=isEvenDay(today);
+
+  // 0. 单双号 & 方案②核心规则
+  rs.push(`<div class="redline" style="background:${odd?'#fff5f0':'#eef3ff'};border-left-color:${odd?'#e07a4d':'#5580d6'}">
+    <b>方案②·错峰单双号：</b>今日是 <b>${odd?'单号日 🍜（中午吃小檗碱，晚上无硫辛酸）':'双号日 🌙（晚餐吃α-硫辛酸整粒，中午无小檗碱）'}</b>，两种降糖成分永远不撞车。</div>`);
+
+  // 缺油顺延提示
+  if(DB.flags && DB.flags.alaPostponedFrom===today){
+    rs.push(`<div class="redline"><b>⚠️ ALA 补吃：</b>昨天（双号日）晚餐没油顺延到今日晚餐。<b>即便今天是单号也可以吃</b>，且不影响午餐单号的小檗碱。今晚晚餐务必加肉/炒菜油！</div>`);
+  }
+  if(even){
+    rs.push(`<div class="redline" style="background:#fffaf0;border-left-color:var(--warn)"><b>🛢️ 今日双号要吃 ALA：</b>今晚晚餐必须有油脂。若纯水煮/没油 → 立刻点主页的「🛢️ 今晚没油·ALA顺延明天」按钮，不要空腹硬吃！</div>`);
+  }
+
+  // 经期第2天提醒：出血量巨多临时停
+  if(isPeriodToday(today) && periodDayIndex(today)===2){
+    rs.push(`<div class="redline"><b>🩸 经期第2天：</b>若出血量异常巨大，可临时停当日晚餐的「叶黄素鱼油 + α-硫辛酸」。点主页「🩸 今天出血量巨大」即生效，次日记得解除。</div>`);
+  }
+  if(isHeavyFlowToday()){
+    rs.push(`<div class="redline"><b>已启用「量大临时停」：</b>今天的 ALA/叶黄素鱼油 自动跳过。量恢复正常后点「✨ 解除量大标记」。</div>`);
+  }
+
+  // 铬叠加警告
+  const chromes = DB.supplements.filter(s=>s.enabled && /铬|chromium/i.test(s.name+(s.tags?.join(' ')||'')));
+  if(chromes.length>1)
+    rs.push(`<div class="redline"><b>铬叠加警告：</b>启用了 ${chromes.length} 种含铬（${chromes.map(c=>c.name).join('、')}），极易过量，请只保留 1 种！</div>`);
+
+  // 小檗碱进度（单号循环60/14）
+  const berb = DB.supplements.find(s=>s.name.includes('小檗碱')||s.name.includes('berberine'));
+  if(berb && berb.enabled && berb.cycleStartKey){
+    const days = daysBetween(DB.cycleStart[berb.cycleStartKey]||today, today);
+    const cycle=74; const phase=((days%cycle)+cycle)%cycle;
+    if(phase>=60) rs.push(`<div class="redline"><b>二氢小檗碱停休期：</b>当前停第${phase-59}/14天，必须等满14天再开新一轮！</div>`);
+    else if(phase>=55) rs.push(`<div class="redline"><b>二氢小檗碱：</b>第 ${phase+1}/60 天，5 天内必须停 2 周！</div>`);
+    else rs.push(`<div class="redline" style="background:#f7faff;border-left-color:#7aa6ff"><b>二氢小檗碱进度：</b>第 ${phase+1}/60 天（单号生效；剩${60-phase-1}天）</div>`);
+  }
+
+  // 3月统一停休组（ALA/姜黄素/水飞蓟，shared unified_3m_break）
+  const ustart = DB.cycleStart['unified_3m_break'] || today;
+  const udays = daysBetween(ustart, today);
+  const uphase = ((udays%104)+104)%104;
+  if(uphase>=90){
+    rs.push(`<div class="redline"><b>🔒 3月统一停休（第 ${uphase-89}/14 天）：</b>ALA/姜黄素/水飞蓟 全部停！停休期间<u>单双号规则也暂停</u>，停药满 14 天后再继续。</div>`);
+  }else if(uphase>=80){
+    rs.push(`<div class="redline"><b>3月统一停休临近：</b>还差 ${90-uphase} 天到停休期，记得从第 91 天开始停 2 周。</div>`);
+  }else{
+    rs.push(`<div class="redline" style="background:#f0fff6;border-left-color:#5ebf90"><b>统一停休进度（ALA/姜黄素/水飞蓟）：</b>第 ${uphase+1}/90 天 · 剩 ${90-uphase-1} 天进入 2 周休整</div>`);
+  }
+
+  // 祛湿轻循环
+  const q=DB.supplements.find(s=>s.name.includes('祛湿轻'));
+  if(q && q.enabled){
+    const days=daysBetween(DB.cycleStart['qushi_cycle']||today, today);
+    const phase=((days%21)+21)%21;
+    rs.push(`<div class="redline" style="background:#fff8ef;border-left-color:var(--warn)"><b>祛湿轻：</b>当前${phase<14?'吃期(第'+(phase+1)+'/14 天)':'停期(第'+(phase-13)+'/7 天)'}，坚持2吃1停不要常年不间断</div>`);
+  }
+  // 19点截止
+  const hr=new Date().getHours();
+  if(hr>=17 && hr<=18)
+    rs.push(`<div class="redline" style="background:#fffaf0;border-left-color:var(--warn)"><b>时间提醒：</b>现在 ${hr} 点，祛湿轻第 2 粒务必在 <b>19 点前</b> 吃完！</div>`);
+  if(hr>=19){
+    const qTaken = todayTakenMap()[q?.id]||0;
+    if(q && q.enabled && qTaken<2)
+      rs.push(`<div class="redline"><b>⚠️ 已过 19 点：</b>祛湿轻今日只吃了 ${qTaken}/2 粒，下次记得 19 点前</div>`);
+  }
+  // 分解酵母上限
+  const f=DB.supplements.find(s=>s.name.includes('分解酵母'));
+  if(f){
+    const t = todayTakenMap()[f.id]||0;
+    if(t>=4) rs.push(`<div class="redline" style="background:#fff5ef;border-left-color:#e08050"><b>分解酵母：</b>今日已吃 ${t}/4 粒（上限4，大餐可额外+2到6）</div>`);
+    else rs.push(`<div class="redline" style="background:#fff5ef;border-left-color:#e08050"><b>分解酵母：</b>今日已吃 ${t}/4 粒</div>`);
+  }
+  // 脂溶性随餐油
+  if(DB.supplements.some(s=>s.enabled && s.requiresOil && s.mealList?.includes(2)))
+    rs.push(`<div class="redline" style="background:#f6faff;border-left-color:#5580d6"><b>晚餐提醒：</b>必须带油脂（炒菜/肉/坚果等），脂溶性药才能吸收；且距离睡觉 ≥ 3h</div>`);
+
+  // 备孕 + 3个月复查
+  rs.push(`<div class="redline"><b>硬性红线：</b>保健品≠药物；肠胃胀气/拉肚子立刻减量；<b>备孕全部停服</b>；3个月复查<b>胰岛素 / 肝功 / 糖化血红蛋白</b></div>`);
+
+  // 低血糖应急按钮
+  rs.push(`<div class="redline" style="background:#ffe9e9;border-left-color:#a11"><b>🏥 低血糖应急：</b>如果出现心慌手抖 / 出冷汗 / 强烈饥饿 → 立刻吃 15g 碳水（半杯果汁/3块方糖/4片苏打饼干），15 分钟不缓解再吃一次，并记录（主页有红色大按钮一键打卡）。</div>`);
+  return rs.join('');
+}
+
+/* ============================================================
+   日志页
+============================================================ */
+function periodCount_(){ return expandPeriodDays().length; }
+function renderLog(){
+  const logs = [...DB.logs].slice(-120).reverse();
+  const html = logs.length? logs.map(L=>{
+    let txt='';
+    if(L.type==='mealStart') txt=`🍽️ 打卡开始：${DB.meals[L.mealIdx]||('第'+L.mealIdx+'餐')}`;
+    else if(L.type==='mealEnd') txt=`✅ 吃完：${DB.meals[L.mealIdx]||('第'+L.mealIdx+'餐')}`;
+    else if(L.type==='dose'){
+      const s=DB.supplements.find(x=>x.id===L.suppId);
+      txt=`💊 吃了：${s?s.name:L.suppId} ${L.note||''}（${L.qty||1}）`;
+    }else if(L.type==='skip'){
+      const s=DB.supplements.find(x=>x.id===L.suppId);
+      txt=`⏭️ 跳过：${s?s.name:L.suppId}${L.note?' · '+L.note:''}`;
+    }else if(L.type==='periodStart') txt=`🩸 经期开始`;
+    else if(L.type==='periodEnd') txt=`✨ 经期结束`;
+    else if(L.type==='postpone') txt=`🛢️ ALA顺延：${L.note||''}`;
+    else if(L.type==='heavyflow') txt=`🩸 量大临时停${L.note?' · '+L.note:''}`;
+    else if(L.type==='hypo') txt=`🏥 低血糖事件${L.note?' · '+L.note:''}`;
+    return `<div class="log-item"><div>${txt}</div><div class="log-time">${fmtDateTime(L.ts)}</div></div>`;
+  }).join('') : '<div class="empty">还没打卡记录</div>';
+  document.getElementById('logList').innerHTML = html;
+
+  // 经期段列表
+  const prs = DB.periodRanges||[];
+  document.getElementById('periodRangeList').innerHTML = prs.length?
+    `<div style="display:flex;flex-direction:column;gap:6px">${prs.map((r,i)=>`<div class="log-item"><div>🩸 ${r.from} → ${r.to}（${daysBetween(r.from,r.to)+1}天）</div>
+       <div><button class="btn sm ghost" onclick="removePeriodRange(${i})">删除</button></div></div>`).join('')}</div>`
+    : '<div class="empty">还没录入经期段</div>';
+
+  // 经期单日
+  const allDays = expandPeriodDays().sort().reverse();
+  document.getElementById('periodList').innerHTML = allDays.length?
+    allDays.slice(0,30).map(d=>`<div class="log-item"><div>🩸 ${d}</div><div><button class="btn sm ghost" onclick="removePeriodDay('${d}')">删除</button></div></div>`).join('')
+    : '<div class="empty">还没有经期记录</div>';
+
+  // 经期快速状态栏 (periodQuickBar)
+  const quick = document.getElementById('periodQuickBar');
+  if(quick){
+    const peri = isPeriodToday();
+    const pbarHtml = peri
+      ? `<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+           <b style="color:#d6336c;font-size:14px">🩸 经期进行中 · 第${periodDayIndex()}天</b>
+           <div class="btn-row" style="margin-left:auto">
+             <button class="btn sm danger" onclick="markHeavyFlowToday()">🩸 今天量巨大·停鱼油/ALA</button>
+             <button class="btn sm" onclick="markEndToday()">✨ 今天结束了</button>
+           </div>
+         </div>`
+      : `<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+           <b style="color:#2f826a;font-size:14px">✨ 非经期</b>
+           <div class="btn-row" style="margin-left:auto">
+             <button class="btn sm" onclick="addPeriodToday()">🩸 今天来了</button>
+             ${predictNextPeriod().ready
+               ? `<button class="btn sm ghost" onclick="confirmPredictedPeriod()">📌 按预测录入下次经期</button>`
+               : ''}
+           </div>
+         </div>`;
+    quick.innerHTML = pbarHtml;
+  }
+  // 预测条
+  const pp = document.getElementById('periodPredict');
+  if(pp){
+    const pr = predictNextPeriod();
+    if(!pr.ready){
+      pp.innerHTML = `<div class="empty">${pr.reason}</div>`;
+    }else{
+      const {cycleDays,flowDays,last,nextFrom,nextTo,daysToNext} = pr;
+      const warn = daysToNext<=3?`<span class="pill danger" style="margin-left:6px">⚠️ 还有${daysToNext}天就来了</span>`
+               : daysToNext<=7?`<span class="pill warn" style="margin-left:6px">🔜 还有${daysToNext}天</span>`
+               : `<span class="pill" style="margin-left:6px">还有${daysToNext}天</span>`;
+      pp.innerHTML = `<div class="banner" style="background:#eefbf4;margin:0;font-size:13px">
+        📈 <b>经期预测（基于${pr.ranges.length}段历史）：</b>
+        平均周期 ${cycleDays}天 · 平均行经 ${flowDays}天 · 上次 ${last.from}~${last.to}<br>
+        👉 下次预计：<b>${nextFrom} ~ ${nextTo}</b>${warn}<br>
+        <button class="btn sm" onclick="applyPredictedPeriod()">✅ 确认并加入这段经期</button>
+        <button class="btn sm ghost" onclick="forceNextPeriod()">✏️ 我要改一下日期</button>
+      </div>`;
+    }
+  }
+
+  // 循环进度
+  renderCycleProgress();
+}
+function confirmPredictedPeriod(){ applyPredictedPeriod(); }
+function applyPredictedPeriod(){
+  const pr = predictNextPeriod(); if(!pr.ready){ toast('先录入1-2段历史'); return; }
+  DB.periodRanges = DB.periodRanges||[];
+  if(DB.periodRanges.find(r=>r.from===pr.nextFrom)){ toast('这段已在列表里'); return; }
+  DB.periodRanges.push({from:pr.nextFrom, to:pr.nextTo});
+  DB.periodRanges.sort((a,b)=>a.from<b.from?-1:1);
+  saveDB(); render(); toast(`✅ 已加入预测经期 ${pr.nextFrom} ~ ${pr.nextTo}`);
+}
+function forceNextPeriod(){
+  const pr = predictNextPeriod(); if(!pr.ready){ toast('先录入1-2段历史'); return; }
+  document.getElementById('prFrom').value = pr.nextFrom;
+  document.getElementById('prTo').value = pr.nextTo;
+  toast('✏️ 已把预测日期写到上面起止框里，直接改然后点「加入这段经期」');
+}
+function renderCycleProgress(){
+  const cycles = [
+    {k:'qushi_cycle',n:'祛湿轻(2吃1停)',len:21,label:(p)=>p<14?`吃(第${p+1}/14天)`:`停(第${p-13}/7天)`,pct:(p)=>p<14?((p+1)/14*100):((p-13)/7*100)},
+    {k:'berb_cycle',n:'二氢小檗碱(单号·2月吃停2周)',len:74,label:(p)=>p<60?`吃(第${p+1}/60天;单号生效)`:`停(第${p-59}/14天)`,pct:(p)=>p<60?((p+1)/60*100):((p-59)/14*100)},
+    {k:'unified_3m_break',n:'【统一】ALA/姜黄素/水飞蓟(3月吃停2周)',len:104,label:(p)=>p<90?`吃(第${p+1}/90天;ALA按双号)`:`🔒停休(第${p-89}/14天 · 全部停)`,pct:(p)=>p<90?((p+1)/90*100):((p-89)/14*100)},
+  ];
+  const today = todayISO();
+  const html = cycles.map(c=>{
+    const start = DB.cycleStart[c.k] || today;
+    const d = daysBetween(start, today);
+    const phase = ((d%c.len)+c.len)%c.len;
+    const pct = Math.max(3, Math.min(100, c.pct(phase)));
+    return `<div style="margin:8px 0">
+      <div style="display:flex;justify-content:space-between;font-size:13px">
+        <b>${c.n}</b>
+        <span>${c.label(phase)}</span>
+      </div>
+      <div class="progress"><span style="width:${pct}%"></span></div>
+      <div class="row2" style="margin-top:6px">
+        <button class="btn sm ghost" onclick="resetCycle('${c.k}')">↻ 重置本轮起点为今天</button>
+        <input type="date" value="${DB.cycleStart[c.k]||today}" onchange="setCycleStart('${c.k}',this.value)" />
+      </div>
+    </div>`;
+  }).join('');
+  document.getElementById('cycleProgress').innerHTML = html;
+}
+// ---- 经期操作 ----
+function addPeriodRange(){
+  const f=document.getElementById('prFrom'); const t=document.getElementById('prTo');
+  if(!f||!t) return;
+  const from=f.value, to=t.value; if(!from||!to){ toast('请选择起止日期'); return; }
+  if(from>to){ toast('结束日期不能早于开始'); return; }
+  DB.periodRanges = DB.periodRanges||[];
+  DB.periodRanges.push({from,to});
+  DB.periodRanges.sort((a,b)=>a.from<b.from?-1:1);
+  DB.logs.push({ts:Date.now(),type: from===todayISO()?'periodStart':(to===todayISO()?'periodEnd':'periodStart'),note:`段：${from}~${to}`});
+  saveDB(); render(); toast(`✅ 已加入经期段 ${from}~${to}（${daysBetween(from,to)+1}天）`);
+}
+function removePeriodRange(i){
+  DB.periodRanges.splice(i,1); saveDB(); render(); toast('已删除');
+}
+function markEndToday(){
+  // 今天作为某段经期的 end：找到包含今天或离今天最近未结束的那段
+  DB.periodRanges = DB.periodRanges||[];
+  const today = todayISO();
+  const idx = DB.periodRanges.findIndex(r=>r.from<=today && today<=r.to);
+  if(idx>=0){
+    // 已在一段里，改这段的 end 为今天
+    DB.periodRanges[idx].to = today;
+  }else{
+    // 没有包含今天的：选一段 from 最早且未结束（end >= 今天-7）
+    const recent = DB.periodRanges
+      .map((r,i)=>({r,i}))
+      .filter(x=>daysBetween(x.r.to,today)<=7)
+      .sort((a,b)=>daysBetween(a.r.to,today)-daysBetween(b.r.to,today))[0];
+    if(recent){ DB.periodRanges[recent.i].to = today; }
+    else {
+      // 实在没有，就建一段 from=today-5 to=today 作为猜测
+      const from = addDays(today,-5);
+      DB.periodRanges.push({from,to:today});
+      toast(`ℹ️ 没找到近7天未结束经期，自动补一段：${from} ~ ${today}`);
+    }
+  }
+  DB.periodRanges.sort((a,b)=>a.from<b.from?-1:1);
+  DB.logs.push({ts:Date.now(),type:'periodEnd',note:`今天结束`});
+  saveDB(); render(); toast('✨ 已标记今天经期结束');
+}
+
+/* -------- 经期智能预测 -------- */
+function predictNextPeriod(){
+  const ranges = (DB.periodRanges||[]).slice().sort((a,b)=>a.from<b.from?-1:1);
+  if(ranges.length===0) return {ready:false, reason:'还没录入任何经期段，填1-2段历史就能开始预测啦'};
+  // 计算平均周期 = 相邻两段 from 间隔
+  let cycleDays = 28; let flowDays = 5;
+  const gaps=[]; const flows=[];
+  for(let i=1;i<ranges.length;i++){
+    gaps.push(daysBetween(ranges[i-1].from, ranges[i].from));
+  }
+  ranges.forEach(r=>flows.push(Math.max(1, daysBetween(r.from,r.to)+1)));
+  if(gaps.length) cycleDays = Math.round(gaps.reduce((a,b)=>a+b,0)/gaps.length);
+  if(flows.length) flowDays = Math.round(flows.reduce((a,b)=>a+b,0)/flows.length);
+  cycleDays = Math.max(21, Math.min(35, cycleDays));
+  flowDays = Math.max(3, Math.min(8, flowDays));
+  const last = ranges[ranges.length-1];
+  const nextFrom = addDays(last.from, cycleDays);
+  const nextTo   = addDays(nextFrom, flowDays-1);
+  const daysToNext = daysBetween(todayISO(), nextFrom);
+  return {ready:true, ranges, cycleDays, flowDays, last, nextFrom, nextTo, daysToNext};
+}
+
+/* -------- 粘贴智能识别：支持多种格式 YYYY-MM-DD ~ YYYY-MM-DD / X月X号到X月X号 / MM-DD / 多行多段 -------- */
+function smartParsePeriod(){
+  const ta = document.getElementById('periodPaste'); if(!ta) return;
+  const txt = ta.value.trim(); if(!txt){ toast('先粘文本再点识别'); return; }
+  const todayY = new Date().getFullYear();
+  const mkDate = (y,m,d)=>{
+    y=y||todayY; if(y<100) y+=2000;
+    return `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+  };
+  const results=[];
+  const lines = txt.split(/[\n;；]+/);
+  const pushRange=(f,t)=>{ if(f && t && f<=t) results.push({from:f,to:t}); };
+  lines.forEach(line=>{
+    if(!line.trim()) return;
+    // pattern 1: 2026-01-05 到 2026-01-10 / ~ / - / 至
+    let m = line.match(/(\d{4})[-\/\.年](\d{1,2})[-\/\.月](\d{1,2})日?\s*(?:~|～|-|—|到|至|→|->)?\s*(?:(\d{4})[-\/\.年])?(\d{1,2})[-\/\.月](\d{1,2})日?/);
+    if(m){
+      const y1 = +m[1]; const mo1 = +m[2]; const d1 = +m[3];
+      const y2 = m[4]?+m[4]:y1; const mo2 = +m[5]; const d2 = +m[6];
+      pushRange(mkDate(y1,mo1,d1), mkDate(y2,mo2,d2));
+      return;
+    }
+    // pattern 2: 1月5号到1月10号 / 1月5日到10号 / 5号-10号
+    m = line.match(/(?:(\d{1,2})[月月份])?\s*(\d{1,2})[号日]\s*(?:到|至|~|～|-|—)\s*(?:(\d{1,2})[月月份]\s*)?(\d{1,2})[号日]?/);
+    if(m){
+      const mo1 = +(m[1]||1); const d1 = +m[2];
+      const mo2 = +(m[3]||mo1); const d2 = +m[4];
+      let y1=todayY, y2=todayY;
+      // 跨年处理：如果 mo2<mo1 说明过了年
+      if(mo2<mo1) y2=y1+1;
+      pushRange(mkDate(y1,mo1,d1), mkDate(y2,mo2,d2));
+      return;
+    }
+    // pattern 3: 单日 2026-01-05
+    m = line.match(/(\d{4})[-\/\.年](\d{1,2})[-\/\.月](\d{1,2})日?/);
+    if(m){
+      pushRange(mkDate(+m[1],+m[2],+m[3]), mkDate(+m[1],+m[2],+m[3]));
+      return;
+    }
+  });
+  if(results.length===0){ toast('❌ 没能识别到日期，试试格式：2026-01-05~2026-01-10 或 1月5号到1月10号'); return; }
+  DB.periodRanges = DB.periodRanges||[];
+  results.forEach(r=>DB.periodRanges.push(r));
+  DB.periodRanges.sort((a,b)=>a.from<b.from?-1:1);
+  saveDB(); render();
+  toast(`✅ 识别 ${results.length} 段经期并加入`);
+  if(ta) ta.value='';
+}
+
+/* -------- URL 参数自动接受经期数据 (iOS 快捷指令「健康 - 经期追踪」一键同步) -------- */
+(function _parseURLParams(){
+  try{
+    const p = new URLSearchParams(location.search||'');
+    const today = todayISO();
+
+    // ===== 方式 1：精准日期段 (健康→快捷指令→取到起止日期再调这个) =====
+    const from = p.get('periodStart'); const to = p.get('periodEnd') || from;
+    if(from && /^\d{4}-\d{2}-\d{2}$/.test(from) && /^\d{4}-\d{2}-\d{2}$/.test(to) && from<=to){
+      DB.periodRanges = DB.periodRanges||[];
+      if(!DB.periodRanges.find(r=>r.from===from && r.to===to)){
+        DB.periodRanges.push({from,to});
+        DB.periodRanges.sort((a,b)=>a.from<b.from?-1:1);
+        DB.logs.push({ts:Date.now(),type:'periodStart',note:`URL精准日期导入 ${from}~${to}`});
+        setTimeout(()=>toast(`📲 健康·精准日期导入：${from}~${to}`),800);
+      }
+    }
+
+    // ===== 方式 2：懒人版 autoPeriod=start（iOS 健康「经期开始」自动化触发） =====
+    //     健康通知自动打开链接，APP 自动：今天=from，默认行经5天 to=today+4
+    else if(p.get('autoPeriod')==='start'){
+      DB.periodRanges = DB.periodRanges||[];
+      const defaultTo = addDays(today, 4);
+      // 如果今天已经在某段里了就不再加
+      const overlap = DB.periodRanges.find(r=>r.from<=today && today<=r.to);
+      if(!overlap){
+        DB.periodRanges.push({from:today, to:defaultTo});
+        DB.periodRanges.sort((a,b)=>a.from<b.from?-1:1);
+        DB.logs.push({ts:Date.now(),type:'periodStart',note:`autoPeriod=start 默认${today}~${defaultTo}；不准就手动改结束日`});
+        setTimeout(()=>toast(`🩸 健康·经期开始：已自动加入 ${today}~${defaultTo}（如行经常/少于5天，去日志Tab改结束日期或点「✨今天结束」）`),600);
+      }else{
+        setTimeout(()=>toast(`ℹ️ 今天已在经期段 ${overlap.from}~${overlap.to}，无需重复加入`),600);
+      }
+    }
+
+    // ===== 方式 3：懒人版 autoPeriod=end（iOS 健康「经期结束」自动化触发） =====
+    //     自动找最近一段经期把它的 to 改成今天
+    else if(p.get('autoPeriod')==='end'){
+      DB.periodRanges = DB.periodRanges||[];
+      let updated = null;
+      // 优先：今天 or 昨天 or 7 天内有 to >= today-7 的最近一段
+      const candidates = DB.periodRanges
+        .map((r,i)=>({r,i}))
+        .filter(x=> daysBetween(x.r.to, today) >= -3 && daysBetween(x.r.from, today) <= 10)
+        .sort((a,b)=> daysBetween(b.r.to, today) - daysBetween(a.r.to, today)); // 最接近今天的 to 先
+      if(candidates.length>0){
+        const pick = candidates[0];
+        DB.periodRanges[pick.i].to = today;
+        updated = DB.periodRanges[pick.i];
+      }else if(DB.periodRanges.length>0){
+        // 实在没找到，就拿最新一段，把 to 挪到今天
+        const last = DB.periodRanges.sort((a,b)=>a.from<b.from?-1:1).slice(-1)[0];
+        const pickIdx = DB.periodRanges.indexOf(last);
+        if(daysBetween(last.to, today) <= 20){
+          DB.periodRanges[pickIdx].to = today;
+          updated = DB.periodRanges[pickIdx];
+        }
+      }
+      // 还没有，就补一段 from=today-4 到 today（假设之前5天）
+      if(!updated){
+        const guessFrom = addDays(today,-4);
+        DB.periodRanges.push({from:guessFrom, to:today});
+        DB.periodRanges.sort((a,b)=>a.from<b.from?-1:1);
+        updated = {from:guessFrom, to:today, _new:true};
+      }
+      DB.periodRanges.sort((a,b)=>a.from<b.from?-1:1);
+      DB.logs.push({ts:Date.now(),type:'periodEnd',note:`autoPeriod=end → 段 ${updated.from}~${updated.to}`});
+      saveDB();
+      setTimeout(()=>toast(`✨ 健康·经期结束：最新经期段已更新为 ${updated.from}~${updated.to}（经期模式已自动退出）`),600);
+    }
+
+    // ===== 量大当日标记 (iOS快捷指令里手动点一下或健康血流"量级>heavy"触发) =====
+    if(p.get('heavyFlow')==='1'){
+      const t = todayISO();
+      if(!DB.flags) DB.flags = {heavyFlowDays:[]};
+      DB.flags.heavyFlowDays = DB.flags.heavyFlowDays||[];
+      if(!DB.flags.heavyFlowDays.includes(t)){ DB.flags.heavyFlowDays.push(t); }
+      saveDB();
+      setTimeout(()=>toast(`🩸 今日已标记：量大 · 鱼油+ALA 自动跳过`),1500);
+    }
+
+    saveDB();
+  }catch(e){
+    try{ saveDB(); }catch(_){}
+  }
+})();
+
+/* ============================================================
+   保健品管理
+============================================================ */
+let editingSuppId = null;
+function renderSupp(){
+  const list = DB.supplements;
+  document.getElementById('suppList').innerHTML = list.length? list.map(s=>`
+    <div class="supp" style="${s.enabled?'':'opacity:.5'}">
+      <div class="chk ${s.enabled?'checked':''}" onclick="toggleSuppEnabled('${s.id}')"></div>
+      <div style="flex:1">
+        <div style="font-weight:600">${s.name} <span style="color:var(--muted);font-weight:400">${s.dose}</span></div>
+        <div class="tags">
+          ${s.enabled?'<span class="pill accent">启用</span>':'<span class="pill muted">停用</span>'}
+          <span class="pill">${s.timing==='withMeal'?'随餐':s.timing==='afterMealDelayed'?`餐后${s.delayMin||30}min`:'餐后'}</span>
+          <span class="pill">适用餐：${(s.mealList||[]).map(i=>DB.meals[i]||'?').join('/')||'全部'}</span>
+          <span class="pill warn">${schLabel(s.schedule)}</span>
+          ${s.stopInPeriod?'<span class="pill danger">经期停</span>':''}
+          ${s.requiresOil?'<span class="pill">需油脂</span>':''}
+          ${s.beforeCutoff?`<span class="pill danger">${s.beforeCutoff}点前</span>`:''}
+        </div>
+        ${s.notes?`<div style="font-size:12px;color:var(--muted);margin-top:4px">💡 ${s.notes}</div>`:''}
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <button class="btn sm ghost" onclick="editSupp('${s.id}')">编辑</button>
+        <button class="btn sm danger" onclick="deleteSupp('${s.id}')">删除</button>
+      </div>
+    </div>
+  `).join('') : '<div class="empty">清单为空，在上方添加</div>';
+
+  // 表单
+  const s = editingSuppId? DB.supplements.find(x=>x.id===editingSuppId) : {
+    id:'',name:'',dose:'1粒',timing:'withMeal',mealList:[0],dailyCap:1,perMealCap:1,
+    schedule:'daily',stopInPeriod:false,fatSoluble:false,beforeCutoff:null,requiresOil:false,notes:'',tags:[],enabled:true,delayMin:30
+  };
+  document.getElementById('suppForm').innerHTML = `
+    <div class="row2">
+      <div><label>名称</label><input id="sf_name" value="${s.name}" placeholder="如 α-硫辛酸" /></div>
+      <div><label>每次剂量</label><input id="sf_dose" value="${s.dose}" placeholder="1粒 / 2粒 / 半粒" /></div>
+    </div>
+    <div class="row2">
+      <div><label>时机</label>
+        <select id="sf_timing">
+          <option value="withMeal" ${s.timing==='withMeal'?'selected':''}>吃饭时随餐吞服</option>
+          <option value="afterMeal" ${s.timing==='afterMeal'?'selected':''}>饭后立刻吃</option>
+          <option value="afterMealDelayed" ${s.timing==='afterMealDelayed'?'selected':''}>饭后X分钟再吃</option>
+        </select>
+      </div>
+      <div><label>餐后X分钟（选上一个才生效）</label>
+        <input id="sf_delayMin" type="number" min="1" max="180" value="${s.delayMin||30}" />
+      </div>
+    </div>
+    <label>哪一餐吃（可多选，Ctrl/点按切换）</label>
+    <div id="sf_meals" class="tag-input">
+      ${[0,1,2].map(i=>`<span class="pill" style="cursor:pointer;padding:6px 12px" data-i="${i}" onclick="toggleMealTag(this,${i})">${(s.mealList||[]).includes(i)?'✔ ':''}${DB.meals[i]}</span>`).join('')}
+    </div>
+    <div class="row2">
+      <div><label>每日上限（粒/次）</label><input type="number" id="sf_dailyCap" min="1" value="${s.dailyCap||1}" /></div>
+      <div><label>每餐剂量（粒/次）</label><input type="number" id="sf_perMealCap" min="1" value="${s.perMealCap||1}" /></div>
+    </div>
+    <label>服用周期</label>
+    <select id="sf_schedule">
+      <option value="daily" ${s.schedule==='daily'?'selected':''}>每天吃</option>
+      <option value="oddDayOnly" ${s.schedule==='oddDayOnly'?'selected':''}>★ 方案②：单号日吃（二氢小檗碱）</option>
+      <option value="evenDayOilStrict" ${s.schedule==='evenDayOilStrict'?'selected':''}>★ 方案②：双号日吃+严格油脂（α-硫辛酸）</option>
+      <option value="alternate" ${s.schedule==='alternate'?'selected':''}>通用隔天吃（按循环起点奇偶）</option>
+      <option value="cycle2w1w" ${s.schedule==='cycle2w1w'?'selected':''}>2周吃 → 1周停（祛湿轻）</option>
+      <option value="cycle3m2w" ${s.schedule==='cycle3m2w'?'selected':''}>3个月吃 → 2周停（ALA/姜黄素/水飞蓟统一停休）</option>
+      <option value="cycle1m2w" ${s.schedule==='cycle1m2w'?'selected':''}>2个月吃 → 2周停（备选）</option>
+    </select>
+    <div class="row2">
+      <div><label>截止时间（点前吃完，比如 19）</label>
+        <input type="number" id="sf_beforeCutoff" min="0" max="23" value="${s.beforeCutoff||''}" placeholder="不填=不限制" /></div>
+      <div><label>循环key（保持默认即可）</label>
+        <input id="sf_cycleStartKey" value="${s.cycleStartKey||cycleKeyFromName(s.name)}" placeholder="如 ala_cycle" /></div>
+    </div>
+    <div class="row2">
+      <label style="display:flex;align-items:center;gap:8px">
+        <span class="switch"><input type="checkbox" id="sf_stopInPeriod" ${s.stopInPeriod?'checked':''}/><span class="slider"></span></span>
+        经期停用
+      </label>
+      <label style="display:flex;align-items:center;gap:8px">
+        <span class="switch"><input type="checkbox" id="sf_requiresOil" ${s.requiresOil?'checked':''}/><span class="slider"></span></span>
+        必须随有油脂正餐
+      </label>
+      <label style="display:flex;align-items:center;gap:8px">
+        <span class="switch"><input type="checkbox" id="sf_fatSoluble" ${s.fatSoluble?'checked':''}/><span class="slider"></span></span>
+        脂溶性（空腹反酸）
+      </label>
+      <label style="display:flex;align-items:center;gap:8px">
+        <span class="switch"><input type="checkbox" id="sf_skipOnHeavyFlow" ${s.skipOnHeavyFlow?'checked':''}/><span class="slider"></span></span>
+        经期量大当日停（鱼油/硫辛酸）
+      </label>
+      <label style="display:flex;align-items:center;gap:8px;grid-column: span 2">
+        <span class="switch"><input type="checkbox" id="sf_enabled" ${typeof s.enabled==='undefined' || s.enabled ? 'checked' : ''}/><span class="slider"></span></span>
+        启用
+      </label>
+    </div>
+    <label>备注/注意事项</label>
+    <textarea id="sf_notes" rows="2" placeholder="肠胃弱先半粒……">${s.notes||''}</textarea>
+    <div class="btn-row" style="margin-top:10px">
+      <button class="btn" onclick="saveSupp('${s.id||''}')">${editingSuppId?'保存修改':'新增保健品'}</button>
+      ${editingSuppId?`<button class="btn ghost" onclick="cancelEdit()">取消</button>`:''}
+    </div>
+  `;
+  window._sf_selectedMeals = new Set(s.mealList||[]);
+}
+function toggleMealTag(el,i){
+  if(window._sf_selectedMeals.has(i)){
+    window._sf_selectedMeals.delete(i);
+    el.textContent = DB.meals[i];
+  }else{
+    window._sf_selectedMeals.add(i);
+    el.textContent = '✔ '+DB.meals[i];
+  }
+  el.style.background = window._sf_selectedMeals.has(i)?'var(--primary)':'#f7edf0';
+  el.style.color = window._sf_selectedMeals.has(i)?'#fff':'var(--primary-dark)';
+}
+function cycleKeyFromName(n){
+  if(!n) return 's_'+Date.now();
+  const map = [['祛湿','qushi_cycle'],['小檗','berb_cycle'],['硫辛酸','ala_cycle'],['姜黄','cur_cycle'],['水飞蓟','milk_cycle'],['叶黄素','lutein_cycle'],['益生菌','pro_cycle'],['铬','chrom_cycle']];
+  for(const [k,v] of map) if(n.includes(k)) return v;
+  return 's_'+Date.now();
+}
+function schLabel(s){
+  return {daily:'每天',oddDayOnly:'单号日',evenDayOilStrict:'双号日·严油脂',alternate:'隔天',cycle2w1w:'2吃1停',cycle3m2w:'3月统一停2周',cycle1m2w:'2月吃停2周'}[s]||s;
+}
+function toggleSuppEnabled(id){
+  const s=DB.supplements.find(x=>x.id===id); if(!s) return;
+  s.enabled=!s.enabled; saveDB(); render();
+}
+function editSupp(id){ editingSuppId=id; render(); toast('下方表单已填入，修改后点保存'); }
+function cancelEdit(){ editingSuppId=null; render(); }
+function deleteSupp(id){
+  if(!confirm('确定删除这个保健品？')) return;
+  DB.supplements = DB.supplements.filter(x=>x.id!==id);
+  saveDB(); render(); toast('已删除');
+}
+function saveSupp(oldid){
+  const name = document.getElementById('sf_name').value.trim();
+  if(!name){ toast('请填名称'); return; }
+  const s = {
+    id: oldid || ('s'+Date.now()),
+    name,
+    dose: document.getElementById('sf_dose').value.trim() || '1粒',
+    timing: document.getElementById('sf_timing').value,
+    delayMin: +document.getElementById('sf_delayMin').value || 30,
+    mealList: [...(window._sf_selectedMeals||[])].sort(),
+    dailyCap: +document.getElementById('sf_dailyCap').value || 1,
+    perMealCap: +document.getElementById('sf_perMealCap').value || 1,
+    schedule: document.getElementById('sf_schedule').value,
+    stopInPeriod: document.getElementById('sf_stopInPeriod').checked,
+    requiresOil: document.getElementById('sf_requiresOil').checked,
+    fatSoluble: document.getElementById('sf_fatSoluble').checked,
+    skipOnHeavyFlow: document.getElementById('sf_skipOnHeavyFlow').checked,
+    enabled: document.getElementById('sf_enabled').checked,
+    beforeCutoff: +document.getElementById('sf_beforeCutoff').value || null,
+    cycleStartKey: document.getElementById('sf_cycleStartKey').value.trim() || cycleKeyFromName(name),
+    notes: document.getElementById('sf_notes').value.trim(),
+    tags: []
+  };
+  if(!s.mealList.length){ toast('请至少选 1 餐'); return; }
+  // 初始化循环起点
+  if(!DB.cycleStart[s.cycleStartKey]) DB.cycleStart[s.cycleStartKey]=todayISO();
+  if(oldid){
+    const i = DB.supplements.findIndex(x=>x.id===oldid);
+    DB.supplements[i]=s;
+  }else{
+    DB.supplements.push(s);
+  }
+  editingSuppId=null; saveDB(); render(); toast('✅ 已保存');
+}
+
+/* ============================================================
+   设置页
+============================================================ */
+function renderSet(){
+  if(document.getElementById('setMeal0')){
+    document.getElementById('setMeal0').value = DB.meals[0];
+    document.getElementById('setMeal1').value = DB.meals[1];
+    document.getElementById('setMeal2').value = DB.meals[2];
+    document.getElementById('setNotify').checked = DB.settings.notify;
+    document.getElementById('setVibrate').checked = DB.settings.vibrate;
+    document.getElementById('setAfterMin').value = DB.settings.afterMin;
+  }
+  // memo（方案②终极定死版）
+  const odd = isOddDay();
+  const memo = `方案②·双隔天错峰版（单号=小檗碱；双号=α-硫辛酸；降糖成分永不撞天）
+【${isPeriodToday()?'经期':'非经期'}${isPeriodToday()?`(第${periodDayIndex()}天)`:''}】${odd?' · 今日单号':isEvenDay()?' · 今日双号':''}
+🌞${DB.meals[0]}随餐：吡啶甲酸铬 1粒（每日固定）
+早饭后：祛湿轻1粒 + 分解酵母2粒；早饭后30min 肠胃益生菌
+☀️${DB.meals[1]}随餐：${odd?'✅ 二氢小檗碱1粒（单号生效）':'❌ 今天双号·停小檗碱'}
+🌙${DB.meals[2]}随餐（必须带油脂·距离睡觉≥3h）：
+    ${isPeriodToday()?'❌经期停少女泉 · ':'✅少女泉 · '}
+    ✅叶黄素鱼油 ·
+    ${isPeriodToday()?'❌经期停姜黄素':'✅姜黄素'} ·
+    ${odd?'❌今天单号·停硫辛酸':'✅α-硫辛酸1整粒(600mg，双号生效；没油就顺延到明天)'}
+晚饭后（19点前）：分解酵母2粒 + 祛湿轻第2粒 + 月神水飞蓟口服液 1支
+
+🩸 经期调整（方案②）
+· 经期停：少女泉、分解酵母、姜黄素（其余照常）
+· 经期仍守单双号：单号午餐小檗碱 / 双号晚餐硫辛酸整粒
+· 若经期第2天出血量异常巨大 → 当天临时停：叶黄素鱼油 + 硫辛酸（主页红色按钮一键标记，次日恢复）
+
+🔴红线方案②专属
+1. 二氢小檗碱：每月单号日午餐1粒；最多连续1-2个月(60天)→停2周
+2. 硫辛酸+姜黄素+水飞蓟：累计3个月(90天)统一停2周；停休期间单双号都不生效
+3. 硫辛酸：双号日晚餐缺油 → 立刻点「顺延到明天」，即便明天单号也照样补吃，不影响午餐小檗碱
+4. 铬每天就1粒，不再叠加任何含铬保健品
+5. 脂溶性(ALA/叶黄素鱼油/姜黄素/少女泉)必须跟有油脂正餐吃；空腹极易反酸心慌睡不好
+6. 祛湿轻严格2周吃→1周停；两粒务必19点前吃完
+7. 分解酵母上限4粒/天；经期直接停；大餐碳水特别多可午饭后额外+2(全天≤6)
+8. 备孕→全部停服；3个月复查：胰岛素/肝功/糖化血红蛋白
+9. 🏥 出现心慌手抖/出冷汗/强烈饥饿→立即15g碳水(半杯果汁/3块方糖/4片苏打)，15min不缓解→再15g→仍不缓解立刻就医
+
+💡 防忘口诀：单号中午吃，双号晚上吃；19点祛湿轻；晚餐带油脂`;
+  const pad = document.getElementById('memoPad'); if(pad) pad.value = memo;
+
+  // 安全报告
+  document.getElementById('safetyReport').innerHTML = renderSafetyReport();
+}
+function saveSettings(){
+  DB.meals[0]=document.getElementById('setMeal0').value.trim()||'早餐';
+  DB.meals[1]=document.getElementById('setMeal1').value.trim()||'午餐';
+  DB.meals[2]=document.getElementById('setMeal2').value.trim()||'晚餐';
+  DB.settings.notify = document.getElementById('setNotify').checked;
+  DB.settings.vibrate = document.getElementById('setVibrate').checked;
+  DB.settings.afterMin = +document.getElementById('setAfterMin').value || 0;
+  if(DB.settings.notify) askNotify();
+  saveDB(); render(); toast('✅ 设置已保存');
+}
+function resetDefaults(){
+  if(!confirm('确定恢复默认保健品列表？（你自定义的会丢失）')) return;
+  DB.supplements = defaultSupplements();
+  saveDB(); render(); toast('✅ 已恢复默认');
+}
+function copyMemo(){
+  const t = document.getElementById('memoPad');
+  t.select(); try{document.execCommand('copy');toast('✅ 已复制到剪贴板');}catch(e){toast('复制失败，请手动选中文本');}
+}
+
+/* ============================================================
+   安全核验报告
+============================================================ */
+function renderSafetyReport(){
+  const issues=[], oks=[], warns=[];
+
+  // 方案②核心：单号≠双号 → 小檗碱和硫辛酸永不撞同一天（真正把两种强效降糖分开）
+  const berb = DB.supplements.find(s=>s.enabled && /小檗碱|berberine/i.test(s.name));
+  const ala  = DB.supplements.find(s=>s.enabled && /硫辛酸/i.test(s.name));
+  if(berb && ala && berb.schedule==='oddDayOnly' && ala.schedule==='evenDayOilStrict'){
+    oks.push(`✅ <b>方案②核心错峰（最大安全加分）：</b>二氢小檗碱仅单号午餐、α-硫辛酸仅双号晚餐（缺油顺延到次日单号补吃也OK）。两种降糖主力永远不在同一血药浓度峰上叠加，心慌/低血糖风险相比"同天一起吃"显著降低。`);
+  }else{
+    if(berb && berb.schedule!=='oddDayOnly') issues.push(`❌ <b>方案②生效条件：</b>二氢小檗碱周期应为「单号日吃」，当前：${schLabel(berb.schedule)}`);
+    if(ala && ala.schedule!=='evenDayOilStrict') issues.push(`❌ <b>方案②生效条件：</b>α-硫辛酸周期应为「双号日吃+严格油脂」，当前：${schLabel(ala.schedule)}`);
+  }
+
+  // 统一停休（三项共用 unified_3m_break）
+  const unifiedNames = [];
+  ['硫辛酸','姜黄素','水飞蓟'].forEach(n=>{
+    const s = DB.supplements.find(x=>x.enabled && x.name.includes(n));
+    if(s && s.cycleStartKey!=='unified_3m_break') unifiedNames.push(`${s.name}(cycle=${s.cycleStartKey})`);
+    else if(s) oks.push(`✅ <b>${n}：</b>已接入【3月统一停2周】shared key = unified_3m_break`);
+  });
+  if(unifiedNames.length) warns.push(`⚠️ <b>统一停休未合并：</b>${unifiedNames.join('、')}。你的说明书写的是"停休一起停"，请在编辑页把这三样的「循环key」都改成 <code>unified_3m_break</code>。`);
+
+  // 水飞蓟是否已启用&餐后吃（方案②默认晚饭后1支）
+  const milk = DB.supplements.find(s=>/水飞蓟/.test(s.name));
+  if(milk && milk.enabled && milk.mealList?.includes(2) && /afterMeal/.test(milk.timing))
+    oks.push(`✅ <b>月神水飞蓟口服液：</b>已启用 + 晚饭后 + 纳入 3 月统一停休。`);
+  else if(milk && !milk.enabled) warns.push(`ℹ️ <b>水飞蓟：</b>当前停用中。说明书里方案②已要求"晚饭后 + 水飞蓟口服液"，如果已经开了就记得去保健品页打开开关。`);
+
+  // 1) 铬叠加
+  const chromes = DB.supplements.filter(s=>s.enabled && /铬|chromium/i.test((s.name||'')+(s.tags?.join(' ')||'')));
+  if(chromes.length>1) issues.push(`❌ <b>铬叠加：</b>启用了 ${chromes.length} 种含铬（${chromes.map(c=>c.name).join('、')}），超过每日1粒的红线。建议只保留 <b>斯旺森吡啶甲酸铬 1 粒</b>，且剂量≤1000mcg/天（常用 200-600mcg）。`);
+  else if(chromes.length===1) oks.push(`✅ <b>铬：</b>只启用了 1 种（${chromes[0].name}），符合红线。注意长期每日别超过 1000mcg。`);
+
+  // 2) 降糖协同（方案②后：当天只会有"铬 + 小檗碱"或"铬 + ALA"，不再三样同天，因此 warn 文案改为 2 种同天更轻描述）
+  const hypoTodayCount = (berb&&evalSchedule(berb).shouldTake?1:0) + (ala&&evalSchedule(ala).shouldTake?1:0) + (chromes.length?1:0);
+  if(hypoTodayCount>=3) warns.push(`⚠️ <b>今日降糖成分：${hypoTodayCount} 样叠加（异常）。</b>按方案②本该≤2；若出现心慌手抖出冷汗 → 立即吃15g碳水，并回顾红线页。`);
+  else if(hypoTodayCount===2) oks.push(`✅ <b>今日降糖 2 样（方案②设计目标）：</b>体内只有一条主力降糖线路工作，相比同时吃 3 样更安全。`);
+
+  // 3) CYP 酶抑制重叠：小檗碱 + 姜黄素（经期外同时在）
+  const cur = DB.supplements.find(s=>s.enabled && /姜黄|curcumin/i.test(s.name));
+  if(berb && cur){
+    // 如果当天 berb 吃，姜黄素也吃（都是随午餐/晚餐分开，仍同体内）
+    warns.push(`ℹ️ <b>CYP 酶抑制：</b>二氢小檗碱 + 姜黄素 都有轻度 CYP3A4/2C9 抑制。两药随不同餐服用已经最小化吸收峰重叠；但如果你开始吃<b>任何处方药</b>（他汀/降压/抗凝/降糖药），<b>必须让医生或药师检查相互作用</b>。无处方药前提下可同方案。`);
+  }
+
+  // 4) 脂溶性 + 需油脂
+  const fatNoOil = DB.supplements.filter(s=>s.enabled && s.fatSoluble && !s.requiresOil);
+  if(fatNoOil.length) warns.push(`⚠️ <b>脂溶性但未标注"需油脂"：</b>${fatNoOil.map(x=>x.name).join('、')}。建议编辑页把「必须随有油脂正餐」打开。`);
+  else oks.push(`✅ <b>脂溶性配置：</b>所有脂溶性（少女泉/叶黄素鱼油/姜黄素/ALA）都已要求"需油脂"。`);
+
+  // 缺油顺延标记 + ALA严格油脂
+  if(ala && ala.schedule==='evenDayOilStrict')
+    oks.push(`✅ <b>ALA严格油脂：</b>已开启"双号日+严格油脂"，主页有红色按钮「今晚没油→顺延明天」，缺油硬吃导致的反酸/心慌/失眠风险已在流程内拦截。`);
+
+  // 5) 分解酵母经期停
+  const fenjie = DB.supplements.find(s=>s.enabled && /分解酵母/.test(s.name));
+  if(fenjie && fenjie.stopInPeriod) oks.push(`✅ <b>分解酵母经期停：</b>已配置。`);
+  else if(fenjie && !fenjie.stopInPeriod) issues.push(`❌ <b>分解酵母未设经期停：</b>请在编辑页开启。`);
+
+  // 6) 少女泉、姜黄素经期停 + 量大当日停（叶黄素/ALA）
+  const checkPeriodStop = name=>{
+    const x = DB.supplements.find(s=>s.enabled && s.name.includes(name));
+    if(x && !x.stopInPeriod) issues.push(`❌ <b>${name} 未设经期停：</b>请在编辑页开启。`);
+    else if(x) oks.push(`✅ <b>${name}：</b>已设经期停。`);
+  };
+  ['少女泉','姜黄素'].forEach(checkPeriodStop);
+  const heavyFlow = DB.supplements.filter(s=>s.enabled && s.skipOnHeavyFlow);
+  if(heavyFlow.length>=2) oks.push(`✅ <b>经期量大临时停：</b>${heavyFlow.map(h=>h.name).join('、')} 已开启；主页一键"量大停/解除"。`);
+
+  // 7) 祛湿轻 2周吃1周停
+  const q = DB.supplements.find(s=>s.enabled && s.name.includes('祛湿轻'));
+  if(q && q.schedule==='cycle2w1w') oks.push(`✅ <b>祛湿轻：</b>已启用 2周吃→1周停 循环。`);
+  else if(q) issues.push(`❌ <b>祛湿轻循环：</b>周期选择不对，应改为"2周吃 → 1周停"。`);
+
+  // 8) 3月吃停组（单独对每个schedule校验）
+  ['硫辛酸','姜黄素','水飞蓟'].forEach(n=>{
+    const s = DB.supplements.find(x=>x.enabled && x.name.includes(n));
+    if(!s) return;
+    const ok3m = s.schedule==='cycle3m2w' || (n.includes('硫辛酸') && s.schedule==='evenDayOilStrict'); // evenDayOilStrict 自带统一停休
+    if(!ok3m) warns.push(`⚠️ <b>${n}：</b>未接入 3 月统一停休。`);
+  });
+
+  // 9) 叶黄素放晚上
+  const lut = DB.supplements.find(s=>s.enabled && /叶黄素|越橘/.test(s.name));
+  if(lut && lut.mealList && lut.mealList.includes(2)) oks.push(`✅ <b>叶黄素：</b>已安排晚餐（晚上）。`);
+  else if(lut) warns.push(`⚠️ <b>叶黄素：</b>你要求放晚上，当前餐别不对。`);
+
+  // 10) 益生菌延迟
+  const pro = DB.supplements.find(s=>s.enabled && /益生菌/.test(s.name));
+  if(pro && pro.timing==='afterMealDelayed' && (pro.delayMin||0)>=20) oks.push(`✅ <b>益生菌：</b>已设置餐后 ${pro.delayMin} 分钟服用。`);
+
+  // 11) α-硫辛酸 600mg 剂量 + 经期量大停标记
+  if(ala && /600/.test(ala.dose||'')){
+    warns.push(`ℹ️ <b>α‑硫辛酸 600mg 剂量说明：</b>方案②已按你要求"<b>不用拆·整粒</b>"，但仍要注意：首次人群若出现明显反酸/腹部灼烧，可自行临时"从半粒 300mg"过渡 2 周再回整粒；务必跟带油的晚餐吃。`);
+  }
+  if(ala && ala.skipOnHeavyFlow) oks.push(`✅ <b>ALA：</b>已开启"经期量大日临时停"，与叶黄素鱼油一起按首页按钮生效。`);
+
+  // 12) 祛湿轻 19点截止
+  if(q && q.beforeCutoff===19) oks.push(`✅ <b>祛湿轻 19点截止：</b>已设置。`);
+  else if(q) warns.push(`⚠️ <b>祛湿轻：</b>建议设置截止时间 19 点。`);
+
+  // 13) 分解酵母 dailyCap ≥ 4
+  if(fenjie && (fenjie.dailyCap||0)<4) issues.push(`❌ <b>分解酵母 dailyCap：</b>应设置为 4 粒/天（大餐+2到6 的保护在按钮中单独限制为 6）`);
+
+  // 14) 小檗碱 oddDayOnly + 最大连续 60/14（通过 berb_cycle 控制）
+  if(berb && berb.cycleStartKey==='berb_cycle'){
+    const d = daysBetween(DB.cycleStart['berb_cycle']||todayISO(), todayISO());
+    const phase = ((d%74)+74)%74;
+    oks.push(`✅ <b>小檗碱周期：</b>本轮第${phase+1}天（单号生效；≤60天吃→14天停，自动遵守"最多1-2个月停2周"）`);
+  }
+
+  // 总结
+  const summary = issues.length?
+    `<div class="redline"><b>共发现 ${issues.length} 条必须修改 + ${warns.length} 条注意事项</b>，建议先把 ❌ 项解决。</div>`
+    : `<div class="redline" style="background:#eefbf4;border-left-color:var(--accent)"><b>方案②·错峰版通过核验 ✅：</b>${oks.length} 项正确，${warns.length} 条注意/说明（均不影响执行，照建议做更安心）。以下为详细说明。</div>`;
+
+  return summary +
+    issues.map(x=>`<div class="redline">${x}</div>`).join('') +
+    warns.map(x=>`<div class="redline" style="background:#fffaf0;border-left-color:var(--warn)">${x}</div>`).join('') +
+    oks.map(x=>`<div style="padding:6px 10px;font-size:13px;color:#2f826a">${x}</div>`).join('') +
+    `<div style="margin-top:10px;font-size:12px;color:var(--muted)">
+      参考文献：NIH ODS Chromium 未设 UL，补充剂量常用 200–1000 mcg；Berberine/Curcumin 均为 CYP3A4 抑制剂（Ones.Health 2026, WellWhisk 2025）；Silymarin 标准疗程 4–12 周并建议周期性停药（StatPearls 2024）；ALA 600mg 为糖尿病神经病变研究剂量，常见副作用为反酸/胃肠道不适；Berberine 与 ALA 均能增强胰岛素敏感性（Dosage-Calc / AltTherapy 综述）。
+    </div>`;
+}
+
+/* ============================================================
+   导入导出 / 清空
+============================================================ */
+function exportJSON(){
+  const blob = new Blob([JSON.stringify(DB,null,2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href=url; a.download=`supp-reminder-${todayISO()}.json`;
+  a.click(); URL.revokeObjectURL(url);
+}
+function importJSON(e){
+  const f = e.target.files[0]; if(!f) return;
+  const r = new FileReader();
+  r.onload = ()=>{
+    try{
+      const d = JSON.parse(r.result);
+      if(!d.supplements) throw 0;
+      DB = d; saveDB(); render();
+      toast('✅ 导入成功');
+    }catch(err){ toast('❌ 文件格式错误'); }
+  };
+  r.readAsText(f);
+  e.target.value='';
+}
+function clearAll(){
+  if(!confirm('⚠️ 将清空所有日志/经期/循环记录，保健品清单保留。确定？')) return;
+  DB.logs=[]; DB.periodDays=[]; saveDB(); render(); toast('✅ 已清空记录');
+}
+
+/* 经期模式切换 */
+function togglePeriodMode(){
+  const now = isPeriodToday();
+  setPeriodToday(!now);
+  if(!now){ // 开启
+    DB.logs.push({ts:Date.now(),type:'periodStart'});
+    toast('🩸 已切换到经期模式：少女泉/分解酵母/姜黄素 自动停');
+  }else{
+    DB.logs.push({ts:Date.now(),type:'periodEnd'});
+    toast('✨ 已退出经期模式');
+  }
+  saveDB(); render();
+}
+function addPeriodToday(){ setPeriodToday(true); DB.logs.push({ts:Date.now(),type:'periodStart'}); saveDB(); render(); toast('已标记'); }
+function removePeriodDay(d){
+  DB.periodDays = DB.periodDays.filter(x=>x!==d);
+  saveDB(); render(); toast('已删除');
+}
+function resetCycle(k){ DB.cycleStart[k]=todayISO(); saveDB(); render(); toast('已重置'); }
+function setCycleStart(k,v){ if(v){DB.cycleStart[k]=v; saveDB(); render(); toast('已更新');} }
+
+/* ---- 方案②快捷动作 ---- */
+function postponeALA(){
+  // 仅在今天是双号或顺延已经标记了时有效
+  const today = todayISO();
+  const tomorrow = todayISO(new Date(parseISO(today).getTime()+86400000));
+  const ala = DB.supplements.find(s=>s.name.includes('硫辛酸'));
+  if(!DB.flags) DB.flags = {alaPostponedFrom:null,heavyFlowDays:[]};
+  DB.flags.alaPostponedFrom = tomorrow;
+  DB.logs.push({ts:Date.now(),type:'postpone',note:`ALA从今天顺延到${tomorrow}晚餐`});
+  if(ala) DB.logs.push({ts:Date.now(),type:'skip',suppId:ala.id,note:'缺油顺延到明天'});
+  saveDB(); render(); vib([80,40,80]);
+  doNotify('🛢️ ALA已顺延',`明天（${tomorrow}）晚餐补吃 1 整粒，记得带油脂！`);
+  toast('🛢️ 已顺延：明天晚餐补吃ALA');
+}
+function markHeavyFlowToday(){
+  const t=todayISO();
+  DB.flags.heavyFlowDays = DB.flags.heavyFlowDays||[];
+  if(!DB.flags.heavyFlowDays.includes(t)) DB.flags.heavyFlowDays.push(t);
+  DB.logs.push({ts:Date.now(),type:'heavyflow',note:'今日量大·鱼油/ALA自动跳过'});
+  saveDB(); render(); vib([100,40,120]);
+  toast('🩸 已标记量大：今天的鱼油/ALA自动跳过');
+}
+function unmarkHeavyFlowToday(){
+  const t=todayISO();
+  DB.flags.heavyFlowDays = (DB.flags.heavyFlowDays||[]).filter(x=>x!==t);
+  DB.logs.push({ts:Date.now(),type:'heavyflow',note:'解除量大标记'});
+  saveDB(); render(); toast('✨ 已解除量大标记');
+}
+function hypoEmergency(){
+  if(!confirm('🏥 确认记录一次低血糖事件？\n\n请立刻执行 15-15 原则：\n• 吃 15g 碳水（半杯果汁 / 3 块方糖 / 4 片苏打饼干）\n• 15 分钟后测血糖；<70 再吃一次\n• 两波不缓解 → 立刻就医\n\n点确定=本次事件已记录')) return;
+  DB.logs.push({ts:Date.now(),type:'hypo',note:'执行15-15应急：已吃15g碳水'});
+  saveDB(); render(); vib([200,60,200,60,300]);
+  doNotify('🏥 低血糖应急已记录','回顾记录：3 个月复查时带给医生看');
+  toast('🏥 已记录，赶紧吃 15g 碳水！');
+}
+
+/* ============================================================
+   Tab 切换 & 启动
+============================================================ */
+let currentPage = 'home';
+document.querySelectorAll('.tab').forEach(t=>{
+  t.addEventListener('click',()=>{
+    currentPage = t.dataset.page;
+    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+    document.getElementById('page-'+currentPage).classList.add('active');
+    window.scrollTo(0,0);
+    render();
+  });
+});
+
+// 每 60 秒刷新主页（用于19点红线等）
+setInterval(()=>{ if(currentPage==='home') renderHome(); }, 60000);
+
+/* ============================================================
+   后台定时预警（每2分钟扫一次；通知只在未读时发1次）
+============================================================ */
+window._lastAlarmKey = {};
+function fireAlarmOnce(key, title, body){
+  const k = key+'|'+todayISO();
+  if(window._lastAlarmKey[k]) return;
+  window._lastAlarmKey[k]=1;
+  doNotify(title, body);
+  // 首页也弹个 toast
+  try{ toast('🔔 '+title+' — '+body); }catch(e){}
+}
+function checkAlarms(){
+  try{
+    const now = new Date(); const HH = now.getHours(); const MM = now.getMinutes();
+    const odd = isOddDay(); const even = isEvenDay();
+    const peri = isPeriodToday();
+    // A) 中午12点还没开始午餐 + 单号 = 该吃小檗碱提醒
+    if(odd && HH===12 && !mealStartedToday(1)){
+      fireAlarmOnce('berb-noon','⏰ 单号午餐·二氢小檗碱','今天是单号！午餐开始时点「开始吃午餐」，随餐吞 1 粒二氢小檗碱。');
+    }
+    // B) 双号 17:30 提醒：晚餐必须有油脂 + ALA整粒
+    if(even && HH===17 && MM>=30 && !mealStartedToday(2)){
+      fireAlarmOnce('ala-dinner','🟠 双号晚餐·ALA整粒','今晚双号 = 吃α-硫辛酸1整粒(600mg)。确保晚餐有炒菜油/肉/坚果，没油就去主页点「顺延到明天」。');
+    }
+    // C) 双号 19:30 还没开始晚餐 → 催 + 强调油脂
+    if(even && HH===19 && MM>=30 && !mealStartedToday(2)){
+      fireAlarmOnce('ala-late','⚠️ 双号还没吃晚餐','α-硫辛酸必须带油脂吃，且距离睡觉至少3小时。吃不了有油的 → 去主页点「顺延到明天」，千万别空腹硬吃！');
+    }
+    // D) 每天 18:50 祛湿轻提醒
+    const q = DB.supplements.find(s=>s.enabled && /祛湿轻/.test(s.name));
+    if(q && HH===18 && MM>=50){
+      const qty = takenToday(q.id);
+      if(qty<2){
+        fireAlarmOnce('q19','⏳ 祛湿轻 19 点截止','还有10分钟到19点！祛湿轻还剩'+(2-qty)+'粒没吃，务必19点前吃完，不然容易上火/睡不好。');
+      }
+    }
+    // E) 经期量大日·已标记 heavyFlow → 上午提示
+    if(peri && isHeavyFlowToday() && HH===11){
+      fireAlarmOnce('heavy','🩸 经期量大今日停','你标记了今天出血量异常巨大。按方案：晚餐临时停 叶黄素鱼油 + ALA，次日恢复。');
+    }
+    // F) 统一停休期进入/即将停休：距离停休≤7天
+    const s3m = DB.cycleStart['unified_3m_break'];
+    if(s3m){
+      const d = daysBetween(s3m, todayISO()); const p = ((d%104)+104)%104;
+      if(p===83){ fireAlarmOnce('u3m-7','🔄 统一停休还有7天','硫辛酸/姜黄素/水飞蓟 已吃满 83/90 天 → 再过 7 天统一停 2 周（14天），停休期间单双号规则暂停。'); }
+      if(p===90){ fireAlarmOnce('u3m-0','🟡 今日开始统一停2周！','硫辛酸+姜黄素+水飞蓟：满90天→今天起统一停14天；这两周主页上这些药会自动变"停休中"，不用手动关。'); }
+    }
+    // G) 小檗碱 60 天临近
+    const sb = DB.cycleStart['berb_cycle'];
+    if(sb){
+      const d = daysBetween(sb,todayISO()); const p = ((d%74)+74)%74;
+      if(p===53){ fireAlarmOnce('berb-7','💊 小檗碱：还有7天停2周','已吃53天(单号生效) → 7天后(第60天)自动进入2周停药期，让胰岛β细胞休息。'); }
+      if(p===60){ fireAlarmOnce('berb-0','🟡 小檗碱：今天起停2周(14天)','已吃满60天单号日 → 本循环最后14天不吃，之后自动开下一轮。'); }
+    }
+    // H) 3个月复查提醒（insulin/肝功/糖化）：每满90天
+    if(!DB.lastCheckupNag || Date.now()-DB.lastCheckupNag>86400000*90){
+      // 看 supplements 累积日志剂量总数是否 ≥ 90 (简单近似)
+      const taken90 = Object.values(takenMap90()).reduce((a,b)=>a+b,0);
+      if(taken90>=720){ // ≈90天 x 8样 ≈720颗
+        fireAlarmOnce('checkup','🏥 3个月复查提醒','已经累计吃满约3个月啦！按红线去复查：胰岛素、肝功(ALT/AST/ALP/GGT)、糖化血红蛋白(HbA1c)。拿着漂亮指标来报喜～');
+        DB.lastCheckupNag = Date.now(); saveDB();
+      }
+    }
+    // I) ALA 顺延没补吃提醒：昨天 postpone 了，今天中午过了12点提醒补吃（只要今天有油脂晚餐就行）
+    const t = todayISO();
+    if(DB.flags && DB.flags.alaPostponedFrom === t && HH===12){
+      fireAlarmOnce('ala-makeup','📌 ALA顺延今日补吃','昨天因缺油顺延的 α-硫辛酸，记得今晚晚餐带油脂吃（不管今天是单还是双，补吃优先）。');
+    }
+  }catch(e){ /* ignore */ }
+}
+function mealStartedToday(idx){
+  // true 表示今天已经点过「开始吃XX餐」
+  const start = new Date(); start.setHours(0,0,0,0); const ts0 = start.getTime();
+  return DB.logs.some(l=>l.type==='mealStart' && l.mealIdx===idx && l.ts>=ts0);
+}
+function takenMap90(){
+  // 过去90天每种药吃了多少次
+  const m={}; const ts = Date.now()-86400000*90;
+  DB.logs.forEach(l=>{ if(l.type==='dose' && l.ts>=ts){ m[l.suppId]=(m[l.suppId]||0)+(l.qty||1); } });
+  return m;
+}
+setInterval(checkAlarms, 120*1000); // 每2分钟扫一次
+setTimeout(checkAlarms, 4000); // 打开后4秒首扫
+
+// 初始：尝试通知授权 & 首次安装默认启动
+if(DB.settings.notify && 'Notification' in window && Notification.permission==='default'){
+  // 延迟一下等用户操作后再请求，避免被浏览器拦
+  setTimeout(askNotify, 3000);
+}
+
+render();
+// 首次启动欢迎
+if(DB.logs.length===0){
+  toast('🎉 已按方案②配置！单号中午吃小檗碱 · 双号晚上吃硫辛酸');
+}
+</script>
+
+
+</body></html>
