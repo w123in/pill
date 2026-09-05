@@ -521,12 +521,21 @@ function todayPlanForMeal(mealIdx){
 
 // 已打卡统计 (今天)
 function todayTakenMap(){
-  const day=todayISO(); const map={}; // suppId -> count
+  const day=todayISO(); const map={}; // suppId -> count (全天总数, 用于每日上限校验)
   for(const L of DB.logs){
     if(fmtDateTime(L.ts).slice(0,10)!==day) continue;
     if(L.type==='dose' && L.suppId) map[L.suppId]=(map[L.suppId]||0)+(L.qty||1);
   }
   return map;
+}
+// 按 药物+餐次 统计当天已吃次数（解决早晚同药被一起勾掉的问题）
+function takenForMeal(suppId, mealIdx){
+  const day=todayISO(); let n=0;
+  for(const L of DB.logs){
+    if(fmtDateTime(L.ts).slice(0,10)!==day) continue;
+    if(L.type==='dose' && L.suppId===suppId && L.mealIdx===mealIdx) n+=(L.qty||1);
+  }
+  return n;
 }
 function todayMealDone(){ // {mealStart:[false,false,false], mealEnd:[false,false,false]}
   const day=todayISO(); const ms=[false,false,false], me=[false,false,false];
@@ -736,9 +745,9 @@ function renderTodoItems(){
     if(withs.length||afters.length){
       parts.push(`<div style="margin:8px 0">
         <div style="font-weight:600;margin-bottom:4px">${mealIcon(mi)} ${DB.meals[mi]} ${ms[mi]?'<span class="pill accent">进行中</span>':''}${me[mi]?'<span class="pill muted">已结束</span>':''}</div>`);
-      for(const x of withs) parts.push(renderSuppRow(x,mi,'随餐',taken[x.supp.id]||0));
+      for(const x of withs) parts.push(renderSuppRow(x,mi,'随餐',takenForMeal(x.supp.id,mi)));
       for(const x of afters) parts.push(renderSuppRow(x,mi,
-        x.supp.timing==='afterMealDelayed'?`餐后${x.supp.delayMin||30}min`:'餐后',taken[x.supp.id]||0));
+        x.supp.timing==='afterMealDelayed'?`餐后${x.supp.delayMin||30}min`:'餐后',takenForMeal(x.supp.id,mi)));
       parts.push('</div>');
     }
   }
