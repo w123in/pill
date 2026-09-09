@@ -406,9 +406,14 @@ function fmtDateTime(ts){const d=new Date(ts);return `${todayISO(d)} ${fmtTime(t
 /* ============================================================
    规则引擎：某保健品今天是否该吃（方案②：单号小檗碱 / 双号ALA / 3月统一停休）
 ============================================================ */
-function dayOfMonth(dateStr=todayISO()){ return +(dateStr.slice(-2)); }
-function isOddDay(d){ return dayOfMonth(d)%2===1; }
-function isEvenDay(d){ return dayOfMonth(d)%2===0; }
+// 方案②核心：用「连续天数」判定单双号，避免31号月份打乱错峰
+// 从 2026-01-01（单号起点）开始算，连续第N天：N为偶数→单号(小檗碱)；N为奇数→双号(硫辛酸)
+function cycleDayNum(dateStr=todayISO()){
+  const epoch='2026-01-01';
+  return daysBetween(epoch, dateStr);
+}
+function isOddDay(d){ const n=cycleDayNum(d||todayISO()); return n%2===0; }  // 连续偶数天=单号
+function isEvenDay(d){ const n=cycleDayNum(d||todayISO()); return n%2===1; }  // 连续奇数天=双号
 function expandPeriodDays(){
   const set = new Set(DB.periodDays||[]);
   for(const r of (DB.periodRanges||[])){
@@ -643,11 +648,11 @@ function renderHome(){
   const badge = document.getElementById('modeBadge');
   const odd = isOddDay();
   const pd = periodDayIndex();
-  const headerSuffix = ` · ${odd?'<b style="color:#fff">奇 单号</b>🍜中午小檗碱':'<b style="color:#fff">偶 双号</b>🌙晚上硫辛酸'}`;
+  const cday=cycleDayNum()+1; const headerSuffix = ` · ${odd?'<b style="color:#fff">单号(第'+cday+'天)</b>🍜中午小檗碱':'<b style="color:#fff">双号(第'+cday+'天)</b>🌙晚上硫辛酸'}`;
   if(isPeriodToday()){
     badge.innerHTML = `🩸 经期第${pd}天${headerSuffix}`; badge.classList.add('period');
   }else{
-    badge.innerHTML = `✨ 非经期 · ${odd?'<b>奇·单号</b>🍜':'<b>偶·双号</b>🌙'}`;
+    const cday2=cycleDayNum()+1; badge.innerHTML = `✨ 非经期 · ${odd?'<b>单号</b>(第'+cday2+'天)🍜':'<b>双号</b>(第'+cday2+'天)🌙'}`;
     badge.classList.remove('period');
   }
 
@@ -1383,7 +1388,7 @@ function renderSet(){
   // memo（方案②终极定死版）
   const odd = isOddDay();
   const memo = `方案②·双隔天错峰版（单号=小檗碱；双号=α-硫辛酸；降糖成分永不撞天）
-【${isPeriodToday()?'经期':'非经期'}${isPeriodToday()?`(第${periodDayIndex()}天)`:''}】${odd?' · 今日单号':isEvenDay()?' · 今日双号':''}
+【${isPeriodToday()?'经期':'非经期'}${isPeriodToday()?`(第${periodDayIndex()}天)`:''}】${odd?' · 今日单号(连续第'+(cycleDayNum()+1)+'天)':' · 今日双号(连续第'+(cycleDayNum()+1)+'天)'}
 🌞${DB.meals[0]}随餐：吡啶甲酸铬 1粒（每日固定）
 早饭后：祛湿轻1粒 + 分解酵母2粒；早饭后30min 肠胃益生菌
 ☀️${DB.meals[1]}随餐：${odd?'✅ 二氢小檗碱1粒（单号生效）':'❌ 今天双号·停小檗碱'}
