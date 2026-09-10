@@ -412,8 +412,8 @@ function cycleDayNum(dateStr=todayISO()){
   const epoch='2026-01-01';
   return daysBetween(epoch, dateStr);
 }
-function isOddDay(d){ const n=cycleDayNum(d||todayISO()); return n%2===0; }  // 连续偶数天=单号
-function isEvenDay(d){ const n=cycleDayNum(d||todayISO()); return n%2===1; }  // 连续奇数天=双号
+function isOddDay(d){ const n=cycleDayNum(d||todayISO()); return n%2===1; }  // 连续奇数天=单号
+function isEvenDay(d){ const n=cycleDayNum(d||todayISO()); return n%2===0; }  // 连续偶数天=双号
 function expandPeriodDays(){
   const set = new Set(DB.periodDays||[]);
   for(const r of (DB.periodRanges||[])){
@@ -1766,9 +1766,14 @@ if(DB.settings.notify && 'Notification' in window && Notification.permission==='
 render();
 
 // ============ 事件委托（彻底解决模板onclick引号坑） ============
-document.addEventListener('click', function(e){
-  var t = e.target.closest('[data-act]');
-  if(!t) return;
+function handleAct(e){
+  var t = e.target;
+  // 向上找直到找到 data-act 属性的元素
+  while(t && t !== document.body){
+    if(t.dataset && t.dataset.act) break;
+    t = t.parentNode;
+  }
+  if(!t || !t.dataset || !t.dataset.act) return;
   var act = t.dataset.act;
   var fnMap = {
     mealStart:  function(){ mealStart(+t.dataset.idx); },
@@ -1784,8 +1789,9 @@ document.addEventListener('click', function(e){
     toggleTag:  function(){ toggleMealTag(t, +t.dataset.idx); },
     saveSupp:   function(){ saveSupp(t.dataset.supp); }
   };
-  if(fnMap[act]) fnMap[act]();
-});
+  if(fnMap[act]) { e.preventDefault(); e.stopPropagation(); fnMap[act](); }
+}
+document.addEventListener('click', handleAct, true);
 // ============ 事件委托 end ============
 
 // 首次启动欢迎
