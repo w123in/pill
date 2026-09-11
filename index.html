@@ -542,6 +542,15 @@ function takenForMeal(suppId, mealIdx){
   }
   return n;
 }
+// 检查今天某餐某药是否已跳过
+function skippedForMeal(suppId, mealIdx){
+  const day=todayISO();
+  for(const L of DB.logs){
+    if(fmtDateTime(L.ts).slice(0,10)!==day) continue;
+    if(L.type==='skip' && L.suppId===suppId && L.mealIdx===mealIdx) return true;
+  }
+  return false;
+}
 function todayMealDone(){ // {mealStart:[false,false,false], mealEnd:[false,false,false]}
   const day=todayISO(); const ms=[false,false,false], me=[false,false,false];
   for(const L of DB.logs){
@@ -603,6 +612,8 @@ function toggleDose(suppId, mealIdx, state /* 'taken'|'skip'|null */){
     vib([40]);
   }else if(state==='skip'){
     DB.logs.push({ts:Date.now(),type:'skip',suppId,mealIdx});
+    vib([30]);
+    toast('已跳过 '+supp.name, 1500);
   }
   saveDB(); render();
 }
@@ -760,18 +771,22 @@ function renderTodoItems(){
 }
 
 function renderSuppRow(x, mealIdx, phase, takenCount){
-  const done = x.sch.shouldTake ? (takenCount >= (x.supp.perMealCap||1)) : false;
-  const skip = !x.sch.shouldTake;
   const supp = x.supp;
+  const userSkipped = skippedForMeal(supp.id, mealIdx);  // 用户手动跳过
+  const done = x.sch.shouldTake ? (takenCount >= (x.supp.perMealCap||1)) : false;
+  const skip = !x.sch.shouldTake || userSkipped;  // 排程不需要 OR 用户跳过
   const tags = [];
   if(!x.sch.shouldTake) tags.push('<span class="pill muted">'+x.sch.reason+'</span>');
+  if(userSkipped) tags.push('<span class="pill muted">已跳过</span>');
   if(supp.requiresOil) tags.push('<span class="pill warn">需油脂</span>');
   if(supp.beforeCutoff) tags.push('<span class="pill danger">'+supp.beforeCutoff+'点前</span>');
   if(supp.stopInPeriod) tags.push('<span class="pill">经期停</span>');
   if(supp.fatSoluble) tags.push('<span class="pill">脂溶性</span>');
 
-  const chkOn = skip ? '' : ' data-act="dose" data-supp="'+supp.id+'" data-meal="'+mealIdx+'" ';
-  const skipOn = ' data-act="skip" data-supp="'+supp.id+'" data-meal="'+mealIdx+'" ';
+  // 已吃/已跳过后，不再显示跳过按钮
+  const showSkip = x.sch.shouldTake && !done && !userSkipped;
+  const chkOn = (skip||done) ? '' : ' data-act="dose" data-supp="'+supp.id+'" data-meal="'+mealIdx+'" ';
+  const skipOn = showSkip ? ' data-act="skip" data-supp="'+supp.id+'" data-meal="'+mealIdx+'" ' : '';
 
   return '<div class="supp '+(done?'done':'')+' '+(skip?'skip':'')+'">'+
     '<div class="chk '+(done?'checked':'')+' '+(skip?'skip':'')+'" '+chkOn+'></div>'+
@@ -784,7 +799,7 @@ function renderSuppRow(x, mealIdx, phase, takenCount){
       '</div>'+
     '</div>'+
     '<div style="display:flex;flex-direction:column;gap:4px">'+
-      '<button class="btn sm ghost" '+skipOn+'>跳过</button>'+
+      (showSkip?'<button class="btn sm ghost" '+skipOn+'>跳过</button>':'')+
     '</div>'+
   '</div>';
 }
