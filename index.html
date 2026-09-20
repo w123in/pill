@@ -1,11 +1,12 @@
 <!DOCTYPE html>
-<html lang="zh-CN"><head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<meta name="theme-color" content="#ff6b8a">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="吃药提醒">
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<meta name="theme-color" content="#ff6b8a" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<meta name="apple-mobile-web-app-title" content="吃药提醒" />
 <title>💊 保健品管家</title>
 <style>
   :root{
@@ -176,7 +177,7 @@
       <div style="margin-top:10px" class="btn-row">
         <button class="btn sm ghost" onclick="exportJSON()">⬇️ 导出数据</button>
         <button class="btn sm ghost" onclick="document.getElementById('importFile').click()">⬆️ 导入数据</button>
-        <input type="file" id="importFile" accept=".json" style="display:none" onchange="importJSON(event)">
+        <input type="file" id="importFile" accept=".json" style="display:none" onchange="importJSON(event)" />
         <button class="btn sm danger" onclick="clearAll()">🗑️ 清空全部</button>
       </div>
     </div>
@@ -196,8 +197,8 @@
 
       <label style="margin-top:10px">✳️ 经期段录入（推荐·一次搞定 5-7天）</label>
       <div class="row2">
-        <input type="date" id="prFrom" value="${todayISO()}">
-        <input type="date" id="prTo" value="${todayISO()}">
+        <input type="date" id="prFrom" value="${todayISO()}"/>
+        <input type="date" id="prTo" value="${todayISO()}"/>
       </div>
       <div class="btn-row" style="margin-top:8px">
         <button class="btn sm" onclick="addPeriodRange()">+ 加入这段经期</button>
@@ -223,9 +224,9 @@
       </div>
       <details style="margin-top:8px"><summary style="font-size:12px;color:var(--muted)">ℹ️ 如何让手机系统日历自动写入本APP？(进阶)</summary>
         <div style="font-size:12px;color:var(--muted);padding-top:6px;line-height:1.7">
-          · <b>iPhone 用户 (iOS 快捷指令)：</b>用「快捷指令 APP」做一个自动化：经期开始 → 打开本页 URL，末尾带上 <code>?periodStart=2026-01-05&amp;periodEnd=2026-01-10</code>，本页会自动收录（已内置解析逻辑）。<br>
+          · <b>iPhone 用户 (iOS 快捷指令)：</b>用「快捷指令 APP」做一个自动化：经期开始 → 打开本页 URL，末尾带上 <code>?periodStart=2026-01-05&periodEnd=2026-01-10</code>，本页会自动收录（已内置解析逻辑）。<br>
           · <b>Android 用户 (Tasker / Macrodroid)：</b>触发「美柚/日历经期开始」→ 打开本 APP 地址，同样带 URL 参数即可。<br>
-          · 参数支持：<code>?periodStart=YYYY-MM-DD&amp;periodEnd=YYYY-MM-DD</code>，也支持 <code>&amp;heavyFlow=1</code>。
+          · 参数支持：<code>?periodStart=YYYY-MM-DD&periodEnd=YYYY-MM-DD</code>，也支持 <code>&heavyFlow=1</code>。
         </div>
       </details>
     </div>
@@ -255,17 +256,17 @@
     <div class="card">
       <h2>🍽️ 三餐名称（你可以改成习惯叫法）</h2>
       <div class="row3">
-        <div><label>早餐</label><input id="setMeal0" value="早餐"></div>
-        <div><label>午餐</label><input id="setMeal1" value="午餐"></div>
-        <div><label>晚餐</label><input id="setMeal2" value="晚餐"></div>
+        <div><label>早餐</label><input id="setMeal0" value="早餐" /></div>
+        <div><label>午餐</label><input id="setMeal1" value="午餐" /></div>
+        <div><label>晚餐</label><input id="setMeal2" value="晚餐" /></div>
       </div>
     </div>
     <div class="card">
       <h2>⏰ 提醒灵敏度</h2>
-      <label><input type="checkbox" id="setNotify" checked=""> 开启本地通知（需点一下按钮授权）</label>
-      <label style="margin-top:8px"><input type="checkbox" id="setVibrate" checked=""> 打卡时震动一下</label>
+      <label><input type="checkbox" id="setNotify" checked /> 开启本地通知（需点一下按钮授权）</label>
+      <label style="margin-top:8px"><input type="checkbox" id="setVibrate" checked /> 打卡时震动一下</label>
       <label style="margin-top:8px">餐后N分钟后提醒"餐后药"（默认吃完立刻弹）
-        <input type="number" id="setAfterMin" value="0" min="0" max="120">
+        <input type="number" id="setAfterMin" value="0" min="0" max="120" />
       </label>
       <div class="btn-row" style="margin-top:10px">
         <button class="btn sm" onclick="saveSettings()">💾 保存设置</button>
@@ -602,18 +603,39 @@ function mealEnd(mealIdx){
   render();
 }
 function toggleDose(suppId, mealIdx, state /* 'taken'|'skip'|null */){
-  const taken = todayTakenMap()[suppId]||0;
   const supp = DB.supplements.find(s=>s.id===suppId);
   if(!supp) return;
-  // 上限校验
-  if(state==='taken' && taken >= (supp.dailyCap||99)){ toast(`${supp.name}已达每日上限(${supp.dailyCap})`); return; }
+  const day = todayISO();
+  // 找今天这条餐次的记录
+  const todayLogs = DB.logs.filter(L => 
+    fmtDateTime(L.ts).slice(0,10)===day && L.suppId===suppId && L.mealIdx===mealIdx
+  );
+  const hasDose = todayLogs.some(L => L.type==='dose');
+  const hasSkip = todayLogs.some(L => L.type==='skip');
+
   if(state==='taken'){
-    DB.logs.push({ts:Date.now(),type:'dose',suppId,mealIdx,qty:supp.perMealCap||1,note:supp.dose});
-    vib([40]);
-  }else if(state==='skip'){
-    DB.logs.push({ts:Date.now(),type:'skip',suppId,mealIdx});
-    vib([30]);
-    toast('已跳过 '+supp.name, 1500);
+    if(hasDose){
+      // 已经吃了 → 撤销（删掉这条）
+      DB.logs = DB.logs.filter(L => !(fmtDateTime(L.ts).slice(0,10)===day && L.suppId===suppId && L.mealIdx===mealIdx && L.type==='dose'));
+      toast('已撤销 '+supp.name, 1200);
+    } else {
+      // 没吃 → 吃了（同时清掉跳过记录）
+      DB.logs = DB.logs.filter(L => !(fmtDateTime(L.ts).slice(0,10)===day && L.suppId===suppId && L.mealIdx===mealIdx && L.type==='skip'));
+      DB.logs.push({ts:Date.now(),type:'dose',suppId,mealIdx,qty:supp.perMealCap||1,note:supp.dose});
+      vib([40]);
+    }
+  } else if(state==='skip'){
+    if(hasSkip){
+      // 已经跳过 → 撤销（删掉这条）
+      DB.logs = DB.logs.filter(L => !(fmtDateTime(L.ts).slice(0,10)===day && L.suppId===suppId && L.mealIdx===mealIdx && L.type==='skip'));
+      toast('已撤销跳过 '+supp.name, 1200);
+    } else {
+      // 没跳过 → 跳过（同时清掉已吃记录）
+      DB.logs = DB.logs.filter(L => !(fmtDateTime(L.ts).slice(0,10)===day && L.suppId===suppId && L.mealIdx===mealIdx && L.type==='dose'));
+      DB.logs.push({ts:Date.now(),type:'skip',suppId,mealIdx});
+      vib([30]);
+      toast('已跳过 '+supp.name, 1200);
+    }
   }
   saveDB(); render();
 }
@@ -783,13 +805,17 @@ function renderSuppRow(x, mealIdx, phase, takenCount){
   if(supp.stopInPeriod) tags.push('<span class="pill">经期停</span>');
   if(supp.fatSoluble) tags.push('<span class="pill">脂溶性</span>');
 
-  // 已吃/已跳过后，不再显示跳过按钮
+  // 状态决定按钮
   const showSkip = x.sch.shouldTake && !done && !userSkipped;
+  const showUndoSkip = userSkipped;   // 已跳过 → 显示撤销按钮
+  const showUndoDose = done;          // 已吃 → 显示撤销按钮
   const chkOn = (skip||done) ? '' : ' data-act="dose" data-supp="'+supp.id+'" data-meal="'+mealIdx+'" ';
   const skipOn = showSkip ? ' data-act="skip" data-supp="'+supp.id+'" data-meal="'+mealIdx+'" ' : '';
+  // 圆圈可反复点：已吃→再点撤销，没吃→点吃药
+  const chkAct = done ? '' : ' data-act="dose" data-supp="'+supp.id+'" data-meal="'+mealIdx+'" ';
 
   return '<div class="supp '+(done?'done':'')+' '+(skip?'skip':'')+'">'+
-    '<div class="chk '+(done?'checked':'')+' '+(skip?'skip':'')+'" '+chkOn+'></div>'+
+    '<div class="chk '+(done?'checked':'')+' '+(skip?'skip':'')+'" '+chkAct+'></div>'+
     '<div style="flex:1">'+
       '<div><span style="font-weight:600">'+supp.name+'</span>'+
         '<span style="color:var(--muted);margin-left:6px">'+phase+' · '+supp.dose+'</span>'+
@@ -800,6 +826,8 @@ function renderSuppRow(x, mealIdx, phase, takenCount){
     '</div>'+
     '<div style="display:flex;flex-direction:column;gap:4px">'+
       (showSkip?'<button class="btn sm ghost" '+skipOn+'>跳过</button>':'')+
+      (showUndoSkip?'<button class="btn sm ghost" data-act="skip" data-supp="'+supp.id+'" data-meal="'+mealIdx+'">撤销跳过</button>':'')+
+      (showUndoDose?'<button class="btn sm ghost" data-act="dose" data-supp="'+supp.id+'" data-meal="'+mealIdx+'">撤销已吃</button>':'')+
     '</div>'+
   '</div>';
 }
@@ -1811,9 +1839,9 @@ document.addEventListener('click', handleAct, true);
 
 // 首次启动欢迎
 if(DB.logs.length===0){
-  toast('🎉 已按方案②配置！单号中午吃小檗碱 · 双号晚上吃硫辛酸');
+  console.log('💊 APP v3.0 loaded - 撤销功能已就绪');
+toast('🎉 已按方案②配置！单号中午吃小檗碱 · 双号晚上吃硫辛酸');
 }
 </script>
-
-
-</body></html>
+</body>
+</html>
