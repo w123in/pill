@@ -136,12 +136,7 @@
     <div class="kpi" id="kpiRow"></div>
 
     <div class="card">
-      <h2>🍽️ 今日吃饭流程（点按钮=打卡）</h2>
-      <div id="mealList"></div>
-    </div>
-
-    <div class="card">
-      <h2>📋 今日还需完成</h2>
+      <h2>📋 今日清单</h2>
       <div id="todayTodo"></div>
     </div>
 
@@ -158,7 +153,7 @@
         <button class="btn sm ghost" onclick="testNotify()">🔔 测试提醒</button>
       </div>
       <div class="btn-row" style="margin-top:8px">
-        <button class="btn sm warn" onclick="postponeALA()">🛢️ 今晚没油·ALA顺延明天</button>
+        <button class="btn sm warn" onclick="postponeALA()">🛢️ 午餐没油·ALA顺延明天</button>
         <button class="btn sm danger" onclick="markHeavyFlowToday()">🩸 今天出血量巨大</button>
         <button class="btn sm accent" onclick="unmarkHeavyFlowToday()">✨ 解除量大标记</button>
       </div>
@@ -302,38 +297,61 @@
    数据结构与默认值
 ============================================================ */
 const LS_KEY = 'supp_reminder_v1';
+const SCHEMA_VER = 2;   // 2 = 2026-10 AKK 期新方案：自动覆盖旧清单、重置周期起点，日志保留
 
-// 预设保健品（方案②：双隔天错峰 + 3月统一停2周）
+// 预设保健品（2026-10 方案：AKK 期 · 每天 10 粒 + 2 支）
 function defaultSupplements(){
   return [
-    {id:'chrom',name:'斯旺森吡啶甲酸铬',dose:'1粒',timing:'withMeal',mealList:[0],dailyCap:1,perMealCap:1,
+    // ===== 早餐 =====
+    {id:'ino',name:'少女泉肌醇粉',dose:'1支',timing:'withMeal',mealList:[0],dailyCap:1,perMealCap:1,
       schedule:'daily',stopInPeriod:false,fatSoluble:false,requiresOil:false,
-      notes:'每天1粒（早餐随餐固定）；不要再叠加别的含铬保健品',tags:['铬','每日上限1粒']},
-    {id:'qushi',name:'祛湿轻',dose:'1粒',timing:'afterMeal',mealList:[0,2],dailyCap:2,perMealCap:1,
-      schedule:'cycle2w1w',cycleStartKey:'qushi_cycle',stopInPeriod:false,fatSoluble:false,
-      beforeCutoff:19,requiresOil:false,notes:'2周吃→1周停循环；两粒务必 19 点前吃完',tags:['祛湿','循环药','19点前']},
-    {id:'fenjie',name:'分解酵母',dose:'2粒',timing:'afterMeal',mealList:[0,2],dailyCap:4,perMealCap:2,
-      schedule:'daily',stopInPeriod:true,fatSoluble:false,requiresOil:false,
-      notes:'跟着碳水餐后吃；大餐碳水多可额外+2粒(全天≤6)；经期直接完全停掉',tags:['碳水','经期停']},
-    {id:'pro',name:'肠胃益生菌',dose:'1粒',timing:'afterMealDelayed',delayMin:30,mealList:[0],dailyCap:1,perMealCap:1,
-      schedule:'daily',stopInPeriod:false,fatSoluble:false,requiresOil:false,notes:'早饭后间隔30min',tags:['餐后延迟']},
+      notes:'早餐前15分钟，≤60°C温水冲200ml；经期头3天停、第4天恢复',tags:['餐前15min','经期头3天停']},
+    {id:'violet',name:'斐萃小紫瓶',dose:'2粒',timing:'withMeal',mealList:[0],dailyCap:2,perMealCap:2,
+      schedule:'daily',stopInPeriod:false,fatSoluble:true,requiresOil:true,
+      notes:'Q10 100mg+VE 200mg+PQQ 20mg；早餐必须有油脂（蛋/奶/坚果）；早餐太素就改到午餐',tags:['脂溶性','需油脂','唯一Q10来源']},
+    {id:'glow',name:'斐萃光子瓶',dose:'2粒',timing:'withMeal',mealList:[0],dailyCap:2,perMealCap:2,
+      schedule:'daily',stopInPeriod:false,fatSoluble:false,requiresOil:false,
+      notes:'谷胱甘肽250mg+麦角硫因30mg；早餐随餐',tags:['早餐']},
+    {id:'akk',name:'INNER HEALTH AKK菌',dose:'1粒',timing:'afterMeal',mealList:[0],dailyCap:1,perMealCap:1,
+      schedule:'daily',stopInPeriod:false,fatSoluble:false,requiresOil:false,
+      notes:'第1批30天；含绿茶提取物只放上午，与咖啡隔1小时；本粒含铬200μg → 此期间斯旺森铬停用',tags:['第1批30天','上午','绿茶提取物']},
+
+    // ===== 午餐 =====
+    {id:'ala',name:'NOW α-硫辛酸 600mg',dose:'1整粒(600mg)',timing:'withMeal',mealList:[1],dailyCap:1,perMealCap:1,
+      schedule:'evenDayOilStrict',cycleStartKey:'unified_3m_break',stopInPeriod:false,skipOnHeavyFlow:true,fatSoluble:true,requiresOil:true,
+      notes:'午餐前30分钟空腹；双号日吃；必须有油脂；经期出血量巨多当天停',tags:['双号日','餐前30min','脂溶性','需油脂','缺油顺延']},
     {id:'berb',name:'Nutricost二氢小檗碱',dose:'1粒',timing:'withMeal',mealList:[1],dailyCap:1,perMealCap:1,
       schedule:'oddDayOnly',cycleStartKey:'berb_cycle',stopInPeriod:false,fatSoluble:false,requiresOil:false,
-      notes:'方案②：每月单号日午餐随餐1粒；最多连续1-2个月→停2周',tags:['单号日','肝药酶','降糖']},
-    {id:'shao',name:'少女泉',dose:'1粒',timing:'withMeal',mealList:[2],dailyCap:1,perMealCap:1,
-      schedule:'daily',stopInPeriod:true,fatSoluble:false,requiresOil:true,notes:'晚餐带油脂一起吃；经期停',tags:['经期停','需油脂']},
-    {id:'ala',name:'NOW α-硫辛酸 600mg',dose:'1整粒(600mg)',timing:'withMeal',mealList:[2],dailyCap:1,perMealCap:1,
-      schedule:'evenDayOilStrict',cycleStartKey:'unified_3m_break',stopInPeriod:false,skipOnHeavyFlow:true,fatSoluble:true,requiresOil:true,
-      notes:'方案②：每月双号日晚餐随餐1整粒；必须有油脂！没油就顺延到次日；经期出血量巨多当天可临时停',tags:['双号日','脂溶性','需油脂','肝肾休整','缺油顺延']},
-    {id:'lutein',name:'双心越橘叶黄素鱼油',dose:'1粒',timing:'withMeal',mealList:[2],dailyCap:1,perMealCap:1,
+      notes:'单号日午餐随餐1粒；最多连续1-2个月→停2周',tags:['单号日','肝药酶','降糖']},
+    {id:'lutein',name:'双心鱼油叶黄素',dose:'1粒',timing:'withMeal',mealList:[1],dailyCap:1,perMealCap:1,
       schedule:'daily',stopInPeriod:false,skipOnHeavyFlow:true,fatSoluble:true,requiresOil:true,
-      notes:'脂溶性/鱼油，必须随油脂正餐；放晚上；经期出血量巨多当天可临时停',tags:['脂溶性','鱼油','需油脂','量大停']},
-    {id:'cur',name:'Naturewise姜黄素',dose:'1粒',timing:'withMeal',mealList:[2],dailyCap:1,perMealCap:1,
+      notes:'已降为1粒（VE+omega-3抗凝叠加）；午餐随餐，经期出血量巨多当天停',tags:['脂溶性','鱼油','需油脂','已减为1粒']},
+    {id:'cur',name:'THORNE姜黄素 Meriva',dose:'1粒',timing:'withMeal',mealList:[1,2],dailyCap:2,perMealCap:1,
       schedule:'cycle3m2w',cycleStartKey:'unified_3m_break',stopInPeriod:true,fatSoluble:true,requiresOil:true,
-      notes:'脂溶性，必须随有油脂正餐；与ALA/水飞蓟统一：连续3个月→停2周；经期停',tags:['脂溶性','经期停','需油脂','肝肾休整','统一停休']},
+      notes:'午、晚各1粒共2粒；经期全停；与铁间隔2小时',tags:['脂溶性','经期停','需油脂','铁间隔','统一停休']},
+
+    // ===== 晚餐 =====
+    {id:'seal',name:'海豹油',dose:'2粒',timing:'afterMeal',mealList:[2],dailyCap:2,perMealCap:2,
+      schedule:'daily',stopInPeriod:false,fatSoluble:true,requiresOil:true,
+      notes:'晚餐后2粒；含VD 400IU、Omega-7 260mg',tags:['脂溶性','含VD','Omega-7']},
+    {id:'k2d3',name:"Doctor's Best K2+D3+钙",dose:'1粒',timing:'afterMeal',mealList:[2],dailyCap:1,perMealCap:1,
+      schedule:'daily',stopInPeriod:false,fatSoluble:true,requiresOil:true,
+      notes:'晚餐后1粒（不是2粒：少女泉已含VD 1000IU）；与海豹油同服',tags:['脂溶性','VD 1000IU','K2 100mcg']},
     {id:'milk',name:'月神水飞蓟口服液',dose:'1支',timing:'afterMeal',mealList:[2],dailyCap:1,perMealCap:1,
       schedule:'cycle3m2w',cycleStartKey:'unified_3m_break',stopInPeriod:false,fatSoluble:false,requiresOil:false,
-      enabled:true,notes:'晚饭后吃；与ALA/姜黄素统一：连续3个月→停2周',tags:['肝肾休整','统一停休','晚饭后']},
+      enabled:true,notes:'晚饭后1支；与ALA/姜黄素统一：连续3个月→停2周',tags:['肝肾休整','统一停休','晚饭后']},
+
+    // ===== 暂停中（AKK 期 / 未排期）=====
+    {id:'chrom',name:'斯旺森吡啶甲酸铬',dose:'1粒',timing:'withMeal',mealList:[1],dailyCap:1,perMealCap:1,
+      schedule:'daily',stopInPeriod:false,fatSoluble:false,requiresOil:false,enabled:false,
+      notes:'【AKK 期暂停】AKK 已含铬200μg，再叠就超标。AKK 30天吃完后开启，午餐随餐1粒',tags:['暂停','AKK后恢复']},
+    {id:'qushi',name:'祛湿轻',dose:'1粒',timing:'afterMeal',mealList:[0,2],dailyCap:2,perMealCap:1,
+      schedule:'cycle2w1w',cycleStartKey:'qushi_cycle',stopInPeriod:false,fatSoluble:false,
+      beforeCutoff:19,requiresOil:false,enabled:false,
+      notes:'【未排入当前方案】需要时再开启；2周吃→1周停，两颗务必19点前吃完',tags:['暂停','祛湿','19点前']},
+    {id:'fenjie',name:'分解酵母',dose:'2粒',timing:'afterMeal',mealList:[0,2],dailyCap:4,perMealCap:2,
+      schedule:'daily',stopInPeriod:true,fatSoluble:false,requiresOil:false,enabled:false,
+      notes:'【未排入当前方案】需要时再开启；跟着碳水餐后吃；经期完全停',tags:['暂停','碳水','经期停']},
   ].map((s,i)=>({id:s.id||('s'+i),enabled:s.enabled!==false,cycleStartKey:s.cycleStartKey||null,...s}));
 }
 
@@ -356,7 +374,8 @@ function defaultData(){
       alaPostponedFrom: null,  // 'YYYY-MM-DD'
       heavyFlowDays: [],       // 'YYYY-MM-DD' 出血量巨大日
     },
-    created: Date.now()
+    created: Date.now(),
+    ver: SCHEMA_VER
   };
 }
 
@@ -381,6 +400,13 @@ function loadDB(){
       const unified = d.cycleStart.unified_3m_break || d.cycleStart.ala_cycle || d.cycleStart.cur_cycle || d.cycleStart.milk_cycle || todayISO();
       d.cycleStart.unified_3m_break = unified;
       if(!d.supplements||!d.supplements.length) d.supplements=defaultSupplements();
+      // 旧方案 → AKK 期新方案：自动换清单 + 重置三个周期起点（历史日志保留）
+      if(!d.ver || d.ver < SCHEMA_VER){
+        d.supplements = defaultSupplements();
+        d.cycleStart = {qushi_cycle: todayISO(), berb_cycle: todayISO(), unified_3m_break: todayISO()};
+        d.ver = SCHEMA_VER;
+        try{ localStorage.setItem(LS_KEY, JSON.stringify(d)); }catch(e){}
+      }
       return d;
     }
   }catch(e){}
@@ -480,8 +506,8 @@ function evalSchedule(supp){
     case 'evenDayOilStrict': {
       const post = DB.flags && DB.flags.alaPostponedFrom===today;
       if(!even && !post) return {shouldTake:false, reason:'双号日生效(今日单号停)'};
-      if(post) return {shouldTake:true, reason:'顺延补吃(昨日缺油)',warn:'今日补吃：晚餐务必带油脂；不影响午餐单号的小檗碱'};
-      return {shouldTake:true, reason:'双号日随油脂晚餐',warn:'今晚必须有油脂；没油请点「顺延到明天」'};
+      if(post) return {shouldTake:true, reason:'顺延补吃(昨日缺油)',warn:'今日补吃：午餐前30分钟空腹；这餐要有油；不影响午餐单号的小檗碱'};
+      return {shouldTake:true, reason:'双号日·午餐前',warn:'午餐前30分钟空腹吃；这餐必须有油脂，没油请点「顺延到明天」'};
     }
     case 'cycle2w1w': {
       const start = DB.cycleStart[supp.cycleStartKey] || today;
@@ -517,6 +543,7 @@ function evalSchedule(supp){
 function todayPlanForMeal(mealIdx){
   const list=[];
   for(const s of DB.supplements){
+    if(s.enabled===false) continue;
     if(s.mealList && !s.mealList.includes(mealIdx)) continue;
     if(s.mealIdx>=0 && s.mealIdx!==mealIdx) continue;
     const sch = evalSchedule(s);
@@ -694,11 +721,11 @@ function renderHome(){
   const taken=todayTakenMap(); const totalToday=totalShouldToday();
   const doneCount = Object.values(taken).reduce((a,b)=>a+b,0);
   const oddEvenHint = odd
-    ? `<b style="color:#c0507a">今日单号日 → 午餐随餐吃：二氢小檗碱；晚餐没有硫辛酸</b>`
-    : `<b style="color:#2f6fbf">今日双号日 → 晚餐带油脂随餐吃：α-硫辛酸1整粒；午餐不吃小檗碱</b>`;
+    ? `<b style="color:#c0507a">今日单号日 → 午餐随餐吃：二氢小檗碱；午餐前不用硫辛酸</b>`
+    : `<b style="color:#2f6fbf">今日双号日 → 午餐前30分钟：α-硫辛酸1整粒（这餐要有油）；午餐不吃小檗碱</b>`;
   banner.innerHTML = `今天 <strong>${todayISO()}</strong> · ${oddEvenHint}<br>
     预计需吃 <b>${totalToday.expected}</b> 种次 · 已完成 <b style="color:var(--accent)">${doneCount}</b> 种次<br>
-    <small style="color:#888">吃饭先点 <b>「开始吃」</b>→随餐药弹出；吃完点 <b>「吃完了」</b>→餐后药弹出</small>`;
+    <small style="color:#888">吃饭点「开始吃」，吃完点「吃完了」记录时间</small>`;
 
   // KPI
   document.getElementById('kpiRow').innerHTML = `
@@ -708,31 +735,6 @@ function renderHome(){
     <div class="box"><div class="n">${DB.meals[2]}</div><div class="l">${lastMealTime('mealStart',2)||'未打卡'}</div></div>
   `;
 
-  // 今日三餐
-  const {ms,me}=todayMealDone();
-  const html = [0,1,2].map(i=>{
-    const withItems = todayPlanForMeal(i).filter(x=>x.supp.timing==='withMeal');
-    const afterItems = todayPlanForMeal(i).filter(x=>
-      x.supp.timing==='afterMeal'||x.supp.timing==='afterMealDelayed');
-    return `<div class="meal-row">
-      <div>
-        <div class="meal-name">${mealIcon(i)} ${DB.meals[i]}
-          ${ms[i]?'<span class="pill accent">吃了</span>':''}
-          ${me[i]?'<span class="pill">已结算</span>':''}
-        </div>
-        <div class="meal-sub">
-          随餐：${summarizeItems(withItems)||'无'}<br>
-          餐后：${summarizeItems(afterItems)||'无'}
-        </div>
-      </div>
-      <div style="display:flex;flex-direction:column;gap:6px">
-        <button class="btn sm ${ms[i]?'gray':''}" data-act="mealStart" data-idx="${i}">${ms[i]?'已开始':'开始吃'}</button>
-        <button class="btn sm accent ${me[i]?'gray':''}" data-act="mealEnd" data-idx="${i}" ${!ms[i]&&!me[i]?'disabled style="opacity:.45"':''}>吃完了</button>
-      </div>
-    </div>`;
-  }).join('');
-  document.getElementById('mealList').innerHTML = html;
-
   // 今日待办清单
   document.getElementById('todayTodo').innerHTML = renderTodoItems();
 
@@ -741,17 +743,6 @@ function renderHome(){
 }
 
 function mealIcon(i){return ['🌞','☀️','🌙'][i]||'🍽️';}
-
-function summarizeItems(items){
-  return items.filter(x=>x.sch.shouldTake).map(x=>{
-    const tags=[];
-    if(x.supp.stopInPeriod && isPeriodToday()) return null;
-    if(x.supp.requiresOil) tags.push('需油脂');
-    if(x.supp.beforeCutoff) tags.push(`${x.supp.beforeCutoff}点前`);
-    if(x.supp.timing==='afterMealDelayed') tags.push(`餐后${x.supp.delayMin||30}min`);
-    return `<span>${x.supp.name}${x.supp.dose}${tags.length?`<span class="pill warn">${tags.join('·')}</span>`:''}</span>`;
-  }).filter(Boolean).join(' · ') || '';
-}
 
 function lastMealTime(type, idx){
   const day=todayISO();
@@ -766,6 +757,7 @@ function lastMealTime(type, idx){
 function totalShouldToday(){
   let expected=0;
   for(const s of DB.supplements){
+    if(s.enabled===false) continue;
     const sch=evalSchedule(s); if(!sch.shouldTake) continue;
     expected += (s.mealList?s.mealList.length:1)*(s.perMealCap||1);
   }
@@ -782,7 +774,13 @@ function renderTodoItems(){
     const afters=arr.filter(x=>x.supp.timing==='afterMeal'||x.supp.timing==='afterMealDelayed');
     if(withs.length||afters.length){
       parts.push(`<div style="margin:8px 0">
-        <div style="font-weight:600;margin-bottom:4px">${mealIcon(mi)} ${DB.meals[mi]} ${ms[mi]?'<span class="pill accent">进行中</span>':''}${me[mi]?'<span class="pill muted">已结束</span>':''}</div>`);
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px">
+          <div style="font-weight:600">${mealIcon(mi)} ${DB.meals[mi]} ${ms[mi]?'<span class="pill accent">进行中</span>':''}${me[mi]?'<span class="pill muted">已结束</span>':''}</div>
+          <div style="display:flex;gap:6px;flex-shrink:0">
+            <button class="btn sm ${ms[mi]?'ghost':''}" data-act="mealStart" data-idx="${mi}">${ms[mi]?'已开始':'开始吃'}</button>
+            <button class="btn sm accent" data-act="mealEnd" data-idx="${mi}" ${(!ms[mi]&&!me[mi])?'disabled style="opacity:.45"':''}>吃完了</button>
+          </div>
+        </div>`);
       for(const x of withs) parts.push(renderSuppRow(x,mi,'随餐',takenForMeal(x.supp.id,mi)));
       for(const x of afters) parts.push(renderSuppRow(x,mi,
         x.supp.timing==='afterMealDelayed'?`餐后${x.supp.delayMin||30}min`:'餐后',takenForMeal(x.supp.id,mi)));
@@ -811,8 +809,8 @@ function renderSuppRow(x, mealIdx, phase, takenCount){
   const showUndoDose = done;          // 已吃 → 显示撤销按钮
   const chkOn = (skip||done) ? '' : ' data-act="dose" data-supp="'+supp.id+'" data-meal="'+mealIdx+'" ';
   const skipOn = showSkip ? ' data-act="skip" data-supp="'+supp.id+'" data-meal="'+mealIdx+'" ' : '';
-  // 圆圈可反复点：已吃→再点撤销，没吃→点吃药
-  const chkAct = done ? '' : ' data-act="dose" data-supp="'+supp.id+'" data-meal="'+mealIdx+'" ';
+  // 圆圈可反复点：已吃→再点撤销，没吃→点吃药（今天不该吃的不绑定）
+  const chkAct = x.sch.shouldTake ? ' data-act="dose" data-supp="'+supp.id+'" data-meal="'+mealIdx+'" ' : '';
 
   return '<div class="supp '+(done?'done':'')+' '+(skip?'skip':'')+'">'+
     '<div class="chk '+(done?'checked':'')+' '+(skip?'skip':'')+'" '+chkAct+'></div>'+
@@ -838,14 +836,14 @@ function renderRedlines(){
 
   // 0. 单双号 & 方案②核心规则
   rs.push(`<div class="redline" style="background:${odd?'#fff5f0':'#eef3ff'};border-left-color:${odd?'#e07a4d':'#5580d6'}">
-    <b>方案②·错峰单双号：</b>今日是 <b>${odd?'单号日 🍜（中午吃小檗碱，晚上无硫辛酸）':'双号日 🌙（晚餐吃α-硫辛酸整粒，中午无小檗碱）'}</b>，两种降糖成分永远不撞车。</div>`);
+    <b>方案②·错峰单双号：</b>今日是 <b>${odd?'单号日 🍜（午餐吃小檗碱，午餐前无硫辛酸）':'双号日 ☀️（午餐前吃α-硫辛酸整粒，午餐无小檗碱）'}</b>，两种降糖成分永远不撞车。</div>`);
 
   // 缺油顺延提示
   if(DB.flags && DB.flags.alaPostponedFrom===today){
-    rs.push(`<div class="redline"><b>⚠️ ALA 补吃：</b>昨天（双号日）晚餐没油顺延到今日晚餐。<b>即便今天是单号也可以吃</b>，且不影响午餐单号的小檗碱。今晚晚餐务必加肉/炒菜油！</div>`);
+    rs.push(`<div class="redline"><b>⚠️ ALA 补吃：</b>昨天（双号日）午餐没油顺延到今天。<b>即便今天是单号也可以吃</b>，且不影响午餐单号的小檗碱。今天午餐前30分钟空腹吃，这餐务必有油！</div>`);
   }
   if(even){
-    rs.push(`<div class="redline" style="background:#fffaf0;border-left-color:var(--warn)"><b>🛢️ 今日双号要吃 ALA：</b>今晚晚餐必须有油脂。若纯水煮/没油 → 立刻点主页的「🛢️ 今晚没油·ALA顺延明天」按钮，不要空腹硬吃！</div>`);
+    rs.push(`<div class="redline" style="background:#fffaf0;border-left-color:var(--warn)"><b>🛢️ 今日双号要吃 ALA：</b>午餐前30分钟空腹吃，这餐必须有油脂。若纯水煮/没油 → 立刻点主页的「🛢️ 午餐没油·ALA顺延明天」按钮，不要空腹硬吃！</div>`);
   }
 
   // 经期第2天提醒：出血量巨多临时停
@@ -892,7 +890,7 @@ function renderRedlines(){
   }
   // 19点截止
   const hr=new Date().getHours();
-  if(hr>=17 && hr<=18)
+  if(q && q.enabled && hr>=17 && hr<=18)
     rs.push(`<div class="redline" style="background:#fffaf0;border-left-color:var(--warn)"><b>时间提醒：</b>现在 ${hr} 点，祛湿轻第 2 粒务必在 <b>19 点前</b> 吃完！</div>`);
   if(hr>=19){
     const qTaken = todayTakenMap()[q?.id]||0;
@@ -901,7 +899,7 @@ function renderRedlines(){
   }
   // 分解酵母上限
   const f=DB.supplements.find(s=>s.name.includes('分解酵母'));
-  if(f){
+  if(f && f.enabled){
     const t = todayTakenMap()[f.id]||0;
     if(t>=4) rs.push(`<div class="redline" style="background:#fff5ef;border-left-color:#e08050"><b>分解酵母：</b>今日已吃 ${t}/4 粒（上限4，大餐可额外+2到6）</div>`);
     else rs.push(`<div class="redline" style="background:#fff5ef;border-left-color:#e08050"><b>分解酵母：</b>今日已吃 ${t}/4 粒</div>`);
@@ -1428,37 +1426,39 @@ function renderSet(){
     document.getElementById('setVibrate').checked = DB.settings.vibrate;
     document.getElementById('setAfterMin').value = DB.settings.afterMin;
   }
-  // memo（方案②终极定死版）
+  // memo（AKK 期最终版）
   const odd = isOddDay();
-  const memo = `方案②·双隔天错峰版（单号=小檗碱；双号=α-硫辛酸；降糖成分永不撞天）
+  const memo = `方案②·双隔天错峰 + AKK 第1批（单号=小檗碱；双号=α-硫辛酸；降糖永不撞天）
 【${isPeriodToday()?'经期':'非经期'}${isPeriodToday()?`(第${periodDayIndex()}天)`:''}】${odd?' · 今日单号(连续第'+(cycleDayNum()+1)+'天)':' · 今日双号(连续第'+(cycleDayNum()+1)+'天)'}
-🌞${DB.meals[0]}随餐：吡啶甲酸铬 1粒（每日固定）
-早饭后：祛湿轻1粒 + 分解酵母2粒；早饭后30min 肠胃益生菌
-☀️${DB.meals[1]}随餐：${odd?'✅ 二氢小檗碱1粒（单号生效）':'❌ 今天双号·停小檗碱'}
-🌙${DB.meals[2]}随餐（必须带油脂·距离睡觉≥3h）：
-    ${isPeriodToday()?'❌经期停少女泉 · ':'✅少女泉 · '}
-    ✅叶黄素鱼油 ·
-    ${isPeriodToday()?'❌经期停姜黄素':'✅姜黄素'} ·
-    ${odd?'❌今天单号·停硫辛酸':'✅α-硫辛酸1整粒(600mg，双号生效；没油就顺延到明天)'}
-晚饭后（19点前）：分解酵母2粒 + 祛湿轻第2粒 + 月神水飞蓟口服液 1支
+🌅 ${DB.meals[0]}
+· 餐前15分钟：少女泉肌醇 1支（≤60°C 温水 200ml 冲）
+· 随餐：斐萃小紫瓶 2粒 + 光子瓶 2粒（这餐必须有油脂：蛋/奶/坚果）
+· 餐后：INNER HEALTH AKK菌 1粒（第1批30天；与咖啡隔1小时）
+· 铬：本阶段暂停（AKK 已含铬200μg）
 
-🩸 经期调整（方案②）
-· 经期停：少女泉、分解酵母、姜黄素（其余照常）
-· 经期仍守单双号：单号午餐小檗碱 / 双号晚餐硫辛酸整粒
-· 若经期第2天出血量异常巨大 → 当天临时停：叶黄素鱼油 + 硫辛酸（主页红色按钮一键标记，次日恢复）
+☀️ ${DB.meals[1]}
+· 餐前30分钟：${odd?'❌ 今天单号·停硫辛酸':'✅ α-硫辛酸 1整粒(600mg)，必须有油脂；没油点「顺延」'}
+· 随餐：${odd?'✅ 二氢小檗碱 1粒（单号生效）':'❌ 今天双号·停小檗碱'} + 双心鱼油叶黄素 1粒 + 姜黄素 1粒
 
-🔴红线方案②专属
-1. 二氢小檗碱：每月单号日午餐1粒；最多连续1-2个月(60天)→停2周
-2. 硫辛酸+姜黄素+水飞蓟：累计3个月(90天)统一停2周；停休期间单双号都不生效
-3. 硫辛酸：双号日晚餐缺油 → 立刻点「顺延到明天」，即便明天单号也照样补吃，不影响午餐小檗碱
-4. 铬每天就1粒，不再叠加任何含铬保健品
-5. 脂溶性(ALA/叶黄素鱼油/姜黄素/少女泉)必须跟有油脂正餐吃；空腹极易反酸心慌睡不好
-6. 祛湿轻严格2周吃→1周停；两粒务必19点前吃完
-7. 分解酵母上限4粒/天；经期直接停；大餐碳水特别多可午饭后额外+2(全天≤6)
-8. 备孕→全部停服；3个月复查：胰岛素/肝功/糖化血红蛋白
-9. 🏥 出现心慌手抖/出冷汗/强烈饥饿→立即15g碳水(半杯果汁/3块方糖/4片苏打)，15min不缓解→再15g→仍不缓解立刻就医
+🌙 ${DB.meals[2]}
+· 餐后：海豹油 2粒 + K2+D3 1粒（不是2粒）+ 姜黄素 1粒 + 月神水飞蓟 1支
 
-💡 防忘口诀：单号中午吃，双号晚上吃；19点祛湿轻；晚餐带油脂`;
+🩸 经期调整
+· 姜黄素：整个经期停
+· 少女泉肌醇：头3天停、第4天恢复（不停整段）
+· 叶黄素鱼油 / 硫辛酸：出血量巨多当天停，主页红色按钮一键标记
+
+🔴 红线
+1. 二氢小檗碱：单号日午餐1粒；连续≤60天 → 停2周
+2. 硫辛酸+姜黄素+水飞蓟：累计90天 → 统一停2周
+3. 硫辛酸：双号午餐缺油 → 立刻点「顺延到明天」
+4. 铬：AKK 期停斯旺森；AKK 30天吃完后恢复 1粒/天（午餐随餐）
+5. 脂溶性（小紫瓶/叶黄素鱼油/姜黄素/硫辛酸/海豹油/K2D3）必须跟有油脂正餐
+6. 姜黄素与铁间隔2小时；有抗凝叠加（VE+omega-3），刷牙出血/易淤青要留意
+7. 备孕→全部停服；3个月复查：胰岛素/肝功/糖化血红蛋白
+8. 🏥 心慌手抖/出冷汗/强烈饥饿 → 立即15g碳水，15min不缓解→再15g→仍不缓解立刻就医
+
+💡 口诀：早肌醇·晚海豹；单号午小檗，双号午硫辛`;
   const pad = document.getElementById('memoPad'); if(pad) pad.value = memo;
 
   // 安全报告
@@ -1494,7 +1494,7 @@ function renderSafetyReport(){
   const berb = DB.supplements.find(s=>s.enabled && /小檗碱|berberine/i.test(s.name));
   const ala  = DB.supplements.find(s=>s.enabled && /硫辛酸/i.test(s.name));
   if(berb && ala && berb.schedule==='oddDayOnly' && ala.schedule==='evenDayOilStrict'){
-    oks.push(`✅ <b>方案②核心错峰（最大安全加分）：</b>二氢小檗碱仅单号午餐、α-硫辛酸仅双号晚餐（缺油顺延到次日单号补吃也OK）。两种降糖主力永远不在同一血药浓度峰上叠加，心慌/低血糖风险相比"同天一起吃"显著降低。`);
+    oks.push(`✅ <b>方案②核心错峰（最大安全加分）：</b>二氢小檗碱仅单号午餐、α-硫辛酸仅双号午餐前（缺油顺延到次日补吃也OK）。两种降糖主力永远不在同一血药浓度峰上叠加，心慌/低血糖风险相比"同天一起吃"显著降低。`);
   }else{
     if(berb && berb.schedule!=='oddDayOnly') issues.push(`❌ <b>方案②生效条件：</b>二氢小檗碱周期应为「单号日吃」，当前：${schLabel(berb.schedule)}`);
     if(ala && ala.schedule!=='evenDayOilStrict') issues.push(`❌ <b>方案②生效条件：</b>α-硫辛酸周期应为「双号日吃+严格油脂」，当前：${schLabel(ala.schedule)}`);
@@ -1539,7 +1539,7 @@ function renderSafetyReport(){
 
   // 缺油顺延标记 + ALA严格油脂
   if(ala && ala.schedule==='evenDayOilStrict')
-    oks.push(`✅ <b>ALA严格油脂：</b>已开启"双号日+严格油脂"，主页有红色按钮「今晚没油→顺延明天」，缺油硬吃导致的反酸/心慌/失眠风险已在流程内拦截。`);
+    oks.push(`✅ <b>ALA严格油脂：</b>已开启"双号日+严格油脂"，主页有红色按钮「午餐没油→顺延明天」，缺油硬吃导致的反酸/心慌/失眠风险已在流程内拦截。`);
 
   // 5) 分解酵母经期停
   const fenjie = DB.supplements.find(s=>s.enabled && /分解酵母/.test(s.name));
@@ -1552,7 +1552,9 @@ function renderSafetyReport(){
     if(x && !x.stopInPeriod) issues.push(`❌ <b>${name} 未设经期停：</b>请在编辑页开启。`);
     else if(x) oks.push(`✅ <b>${name}：</b>已设经期停。`);
   };
-  ['少女泉','姜黄素'].forEach(checkPeriodStop);
+  ['姜黄素'].forEach(checkPeriodStop);
+  const ino = DB.supplements.find(s=>s.enabled && s.name.includes('少女泉'));
+  if(ino) oks.push(`✅ <b>少女泉肌醇：</b>按"经期头3天停、第4天恢复"处理（不做整段经期停）。`);
   const heavyFlow = DB.supplements.filter(s=>s.enabled && s.skipOnHeavyFlow);
   if(heavyFlow.length>=2) oks.push(`✅ <b>经期量大临时停：</b>${heavyFlow.map(h=>h.name).join('、')} 已开启；主页一键"量大停/解除"。`);
 
@@ -1569,10 +1571,9 @@ function renderSafetyReport(){
     if(!ok3m) warns.push(`⚠️ <b>${n}：</b>未接入 3 月统一停休。`);
   });
 
-  // 9) 叶黄素放晚上
+  // 9) 叶黄素随餐
   const lut = DB.supplements.find(s=>s.enabled && /叶黄素|越橘/.test(s.name));
-  if(lut && lut.mealList && lut.mealList.includes(2)) oks.push(`✅ <b>叶黄素：</b>已安排晚餐（晚上）。`);
-  else if(lut) warns.push(`⚠️ <b>叶黄素：</b>你要求放晚上，当前餐别不对。`);
+  if(lut) oks.push(`✅ <b>叶黄素鱼油：</b>已安排随餐（${(lut.mealList||[]).map(i=>DB.meals[i]).join(' / ')}）。`);
 
   // 10) 益生菌延迟
   const pro = DB.supplements.find(s=>s.enabled && /益生菌/.test(s.name));
@@ -1580,7 +1581,7 @@ function renderSafetyReport(){
 
   // 11) α-硫辛酸 600mg 剂量 + 经期量大停标记
   if(ala && /600/.test(ala.dose||'')){
-    warns.push(`ℹ️ <b>α‑硫辛酸 600mg 剂量说明：</b>方案②已按你要求"<b>不用拆·整粒</b>"，但仍要注意：首次人群若出现明显反酸/腹部灼烧，可自行临时"从半粒 300mg"过渡 2 周再回整粒；务必跟带油的晚餐吃。`);
+    warns.push(`ℹ️ <b>α‑硫辛酸 600mg 剂量说明：</b>方案②已按你要求"<b>不用拆·整粒</b>"，但仍要注意：首次人群若出现明显反酸/腹部灼烧，可自行临时"从半粒 300mg"过渡 2 周再回整粒；务必跟带油的正餐吃。`);
   }
   if(ala && ala.skipOnHeavyFlow) oks.push(`✅ <b>ALA：</b>已开启"经期量大日临时停"，与叶黄素鱼油一起按首页按钮生效。`);
 
@@ -1732,17 +1733,21 @@ function checkAlarms(){
     const now = new Date(); const HH = now.getHours(); const MM = now.getMinutes();
     const odd = isOddDay(); const even = isEvenDay();
     const peri = isPeriodToday();
+    // A0) 7:30 还没开始早餐 → 肌醇 + 小紫瓶/光子瓶
+    if(HH===7 && MM>=30 && !mealStartedToday(0)){
+      fireAlarmOnce('bf-ino','🌅 早餐前·肌醇+小紫瓶','早餐前15分钟冲少女泉肌醇1支（≤60°C 温水）；早餐随餐吃小紫瓶2粒+光子瓶2粒，这餐必须有油脂（蛋/奶/坚果）。');
+    }
     // A) 中午12点还没开始午餐 + 单号 = 该吃小檗碱提醒
     if(odd && HH===12 && !mealStartedToday(1)){
       fireAlarmOnce('berb-noon','⏰ 单号午餐·二氢小檗碱','今天是单号！午餐开始时点「开始吃午餐」，随餐吞 1 粒二氢小檗碱。');
     }
-    // B) 双号 17:30 提醒：晚餐必须有油脂 + ALA整粒
-    if(even && HH===17 && MM>=30 && !mealStartedToday(2)){
-      fireAlarmOnce('ala-dinner','🟠 双号晚餐·ALA整粒','今晚双号 = 吃α-硫辛酸1整粒(600mg)。确保晚餐有炒菜油/肉/坚果，没油就去主页点「顺延到明天」。');
+    // B) 双号 11:00 提醒：午餐前 ALA整粒
+    if(even && HH===11 && MM<30 && !mealStartedToday(1)){
+      fireAlarmOnce('ala-lunch','🟠 双号午餐前·ALA整粒','今天双号 = 午餐前30分钟吃α-硫辛酸1整粒(600mg)。午餐要有油，没油就去主页点「顺延到明天」。');
     }
-    // C) 双号 19:30 还没开始晚餐 → 催 + 强调油脂
-    if(even && HH===19 && MM>=30 && !mealStartedToday(2)){
-      fireAlarmOnce('ala-late','⚠️ 双号还没吃晚餐','α-硫辛酸必须带油脂吃，且距离睡觉至少3小时。吃不了有油的 → 去主页点「顺延到明天」，千万别空腹硬吃！');
+    // C) 双号 11:30 还没开始午餐 → 催 + 强调油脂
+    if(even && HH===11 && MM>=30 && !mealStartedToday(1)){
+      fireAlarmOnce('ala-late','⚠️ 双号还没开始午餐','α-硫辛酸要午餐前30分钟空腹吃，这餐还得有油。吃不了有油的 → 去主页点「顺延到明天」，别空腹硬吃！');
     }
     // D) 每天 18:50 祛湿轻提醒
     const q = DB.supplements.find(s=>s.enabled && /祛湿轻/.test(s.name));
@@ -1753,8 +1758,8 @@ function checkAlarms(){
       }
     }
     // E) 经期量大日·已标记 heavyFlow → 上午提示
-    if(peri && isHeavyFlowToday() && HH===11){
-      fireAlarmOnce('heavy','🩸 经期量大今日停','你标记了今天出血量异常巨大。按方案：晚餐临时停 叶黄素鱼油 + ALA，次日恢复。');
+    if(peri && isHeavyFlowToday() && HH===8 && MM>=30){
+      fireAlarmOnce('heavy','🩸 经期量大今日停','你标记了今天出血量异常巨大。按方案：今天临时停 叶黄素鱼油（午餐）+ α-硫辛酸（午餐前），次日恢复。');
     }
     // F) 统一停休期进入/即将停休：距离停休≤7天
     const s3m = DB.cycleStart['unified_3m_break'];
